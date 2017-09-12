@@ -1,0 +1,9 @@
+name: "Simulacra"
+output_dir: "."
+navbar:
+  title: "Harrison's website"
+  left:
+    - text: "Home"
+      href: index.html
+    - text: "About Me"
+      href: about.html
