@@ -1,0 +1,334 @@
+
+\documentclass[12pt]{article}
+\setlength{\parskip}{.1in}
+\setlength{\parindent}{0cm}
+%myalterations
+\usepackage{amssymb}
+\usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+\usepackage[colorlinks=true,urlcolor=blue,pdfborder={0 0 .5}pdfnewwindow=true]{hyperref}
+%\usepackage{enumitem}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{verbatim}
+
+\usepackage{tabularx}
+\usepackage{arydshln,leftidx,mathtools}
+\usepackage{bm}
+\usepackage{tikz-cd}
+\usepackage{hyperref}
+\usepackage{enumerate}
+
+\setlength{\dashlinedash}{.4pt}
+\setlength{\dashlinegap}{.8pt}
+%\usepackage{amsthm}
+\usepackage{verbatim}
+%\usepackage{commath}
+%My commands
+%environment abbreviations
+\newcommand{\benu}{\begin{enumerate}[(a)]}
+\newcommand{\eenu}{\end{enumerate}}
+\newcommand{\bed}{\begin{description}}
+\newcommand{\ed}{\end{description}}
+%\theoremstyle{definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{notation}{Notation}
+\newcommand{\bnot}{\begin{notation}}
+\newcommand{\enot}{\end{notation}}
+\newcommand{\bet}{\begin{theorem}}
+\newcommand{\et}{\end{theorem}}
+\newtheorem{axiom}{Axiom}
+\newcommand{\baxi}{\begin{axiom}}
+\newcommand{\axi}{\end{axiom}}
+\newtheorem{lemma}{Lemma}
+\newcommand{\bel}{\begin{lemma}}
+\newcommand{\el}{\end{lemma}}
+\newtheorem{corollary}{Corollary}
+\newcommand{\bec}{\begin{corollary}}
+\newcommand{\ec}{\end{corollary}}
+\newtheorem{observation}{Observation}
+\newcommand{\bo}{\begin{observation}}
+\newcommand{\eo}{\end{observation}}
+\newtheorem{exercise}{Exercise}
+\newcommand{\bex}{\begin{exercise}}
+\newcommand{\ex}{\end{exercise}}
+
+\newtheorem{definition}{Definition}
+\newcommand{\bdf}{\begin{definition}}
+\newcommand{\edf}{\end{definition}}
+\newtheorem{example}{Example}
+\newcommand{\bax}{\begin{example}}
+\newcommand{\ax}{\end{example}}
+\newcommand{\pru}{{ \bfseries \textcolor{red}{Proof:} }}
+\newcommand{\blu}[1]{\textcolor{blue}{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\pr}[1]{\section*{Problem #1}}
+
+%\newtheorem*{und}{Definition}
+%symbol definitions
+\newcommand{\un}[1]{\underline{#1}}
+\newcommand{\mbZ}{\mathbb{Z}}
+\newcommand{\mbR}{\mathbb{R}}
+\newcommand{\mbN}{\mathbb{N}}
+\newcommand{\mbQ}{\mathbb{Q}}
+\newcommand{\mbC}{\mathbb{C}}
+\newcommand{\mbF}{\mathbb{F}}
+\newcommand{\mcS}{\mathcal{S}}
+\newcommand{\mcP}{\mathcal{P}}
+\newcommand{\mcR}{\mathcal{R}}
+\newcommand{\hra}{\hookrightarrow}
+\newcommand{\tra}{\twoheadrightarrow}
+\newcommand{\lra}{\leftrightarrow}
+
+\newcommand{\Ra}{\Rightarrow}
+\newcommand{\mb}[1]{\mathbb{#1}}
+\newcommand{\mc}[1]{\mathcal{#1}}
+\newcommand{\bfs}[1]{{\bfseries #1}}
+%Operator definitions
+\DeclareMathOperator{\Irr}{Irr}
+\DeclareMathOperator{\triv}{triv}
+\DeclareMathOperator{\cyc}{cyc}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\expo}{x}
+\DeclareMathOperator{\ord}{o}
+\DeclareMathOperator{\imm}{im}
+\DeclareMathOperator{\sgn}{sgn}
+\DeclareMathOperator{\Sym}{Sym}
+\DeclareMathOperator{\alt}{alt}
+\DeclareMathOperator{\irr}{irr}
+\DeclareMathOperator{\eqt}{Equiv}
+\DeclareMathOperator{\pat}{Part}
+%\DeclareMathOperator{\sgn}{sgn}
+%\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\Gl}{Gl}
+\DeclareMathOperator{\M}{M}
+\DeclareMathOperator{\Id}{Id}
+\DeclareMathOperator{\fixx}{Fix}
+\DeclareMathOperator{\suppp}{Supp}
+\DeclareMathOperator{\gl}{Gl}
+\DeclareMathOperator{\id}{Id}
+\DeclareMathOperator{\Aut}{Aut}
+\DeclareMathOperator{\Inn}{Inn}
+\DeclareMathOperator{\orb}{orb}
+\DeclareMathOperator{\ii}{I}
+\DeclareMathOperator{\im}{im}
+\DeclareMathOperator{\Fix}{Fix}
+\DeclareMathOperator{\Co}{Co}
+\newcommand{\nms}{\negmedspace}
+\newcommand{\nts}{\negthinspace}
+
+\newcommand{\itep}{\item {\bfseries Problem}\ }
+\newcommand{\gen}[1]{\langle #1 \rangle}
+\newcommand{\quot}[2]{#1\nts/ \nms #2}
+\newcommand{\order}[1]{\left|<\nts #1 \nts s>\right|}
+
+\begin{document}
+\noindent Harrison Tietze \hfill Topology 751 \\
+Project, May 2017 \hfill Professor Ilya Kapovich\\
+\section*{Baire Spaces}
+\section{Definitions and Main Results}
+\bdf If $A$ is a subset of a (topological) space $X$, the \textbf{interior} of $A$ with respect to $X$ is denoted $A^{\circ}$ and is defined as the union of all open sets of $X$ that are contained in $A$. $A$ has \textbf{empty interior} if $A$ contains no open set of $X$ other than the empty set, and we write $A^{\circ}=\emptyset$. 
+
+
+\edf
+\bax In the space $\mbR$, the subset $\mbQ$ has empty interior but $[0,1]^{\circ}=(0,1)$.  
+\ax
+
+\bdf A subset A of a topological space X is \textbf{dense} if every point of $X$ is an adherence point of A. 
+\edf
+
+\bel
+The following statements are equivalent:\par  A is dense in X\begin{enumerate}[$\Leftrightarrow$]
+	\item Every nonempty open set of $X$ contains a point in $A$ 
+	\item If $x \in X$, every neighborhood of $x$ has a nonempty intersection with $A$
+	\item $\overline{A}=X$
+	\end{enumerate}
+\el 
+
+\bel A subset $A$ has empty interior in a space X if every point of $A$ is a limit point of $A^c$. That is, A has empty interior implies $A^c$ is dense in $X$. 
+\el 
+\bdf A topological space $X$ is said to be a \textbf{Baire Space} if $X$ satisfies the \textbf{closed Baire condition}: Given any countable collection $\{A_n\}$ of closed sets in $X$, each of which has empty interior in $X$, their union $\bigcup A_n$ also has empty interior in $X$. 
+\edf
+
+\bax
+The space $\mbQ$ is not a Baire Space. Each singleton in $\mbQ$ is closed and has empty interior in $\mbQ$. Let $(q_n)$ be an enumeration of the set $\mbQ$. Then $\left(\bigcup_{n=1}^{\infty}\{q_n\}\right)^{\circ}=\mbQ^{\circ}=\mbQ$ which is not empty. \\
+
+On the other hand $\mbZ_+$ is a Baire Space. Since singletons are open in $\mbZ_+$, there is no subset of $\mbZ_+$ having an empty interior, except for the empty set, so $\mbZ_+$ satisfies the closed Baire condition vacuously. The key difference between the two examples is that $\mbZ$ inherits the discrete topology from $\mbR$ but $\mbQ$ does not. 
+\ax
+
+
+\bel A space $X$ is a Baire space if and only if it satisfies the \textbf{open Baire condition}: given any countable collection $\{U_n\}$ of open sets in X, each of which is dense in X, their intersection $\bigcap U_n$ is also dense in X. 
+\el
+\begin{proof} Let $X$ be a space that satisfies the open Baire condition. Let $\{A_n\}$ be a countable collection of closed sets with empty interior in $X$. Then $\{A_n^c\}$ is a collection of open sets, each of which by Lemma 1 are dense in $X$. By assumption, $\bigcap A_n^c$ is also dense in $X$, that is, $\overline{\bigcap A_n^c}=X$. It follows that
+\begin{align*}
+	\emptyset&=X^c\\
+	&=\left(\overline{\bigcap A_n^c}\right)^c\\
+	&=\biggr(\left(\bigcap A_n^c \right)^c\biggr)^{\circ}\\
+	&=\bigg( \bigcup A_n \bigg)^{\circ}
+\end{align*}
+\end{proof}
+\bet (\textbf{Baire Category Theorem.}) If X is a compact Hausdorff space or a complete metric space, then X is a Baire Space.
+\et
+
+\begin{proof}
+	 Given a countable collection $\{A_n\}$ of closed sets in $X$ having empty interiors, we want to show that their union $\bigcup A_n$ also has an empty interior in $X$. So, given a nonempty open set $U_0$ of $X$, we must find a point $x$ of $U_0$ that does not lie in any of the sets $A_n$. \\
+
+\indent Consider the first set $A_1$. By assumption, $A_1$ does not contain $U_0$. Therefore, we may choose a point $y\in U_0\backslash A_1$. Regularity of $X$, along with the fact that $A_1$ is closed, enables us to choose a neighborhood $U_1$ of $y$ such that 
+\begin{align*}
+	\overline{U_1}\cap A_1=\emptyset\\
+	\overline{U_1}\subset U_0
+\end{align*}
+
+If $X$ is metric, we also choose $U_1$ small enough that its diameter is less than $1$. In general, given the nonempty open set $U_{n-1}$, we choose a point of $U_{n-1}$ that is not in the closed set $A_n$, and then we choose $U_n$ to be a neighborhood of this point such that 
+\begin{align*}
+	\overline{U_n}\cap A_n=\emptyset\\
+	\overline{U_n}\subset U_{n+1}\\
+	diam\  U_n<\frac{1}{n} &&\text{ in the metric case}
+\end{align*}
+We assert that the intersection $\bigcap \overline{U_n}$ is nonempty. This occurs in 2 cases: If $X$ is compact and Hausdorff, apply the \textbf{closed characterization of Compactness:} \textit{every collection of closed sets with the finite intersection property has a non-empty intersection.} \\
+
+If $X$ is a complete metric space, apply the \textbf{Nested Set Theorem:} \textit{a sequence of nonempty closed sets with vanishing diameter in a complete metric space has a nonempty intersection}. \\
+
+In either case we establish the existence of a point $x\in \bigcap \overline{U_n}$. Then $x\in U_0$ because $x\in \bigcap \overline{U_n} \subset \overline{U_1} \subset U_0.$ And since each $\overline{U_n}$ is disjoint from $A_n$, it follows that $x\notin \bigcup A_n$. This completes the proof. 
+\end{proof}
+
+\bel Any open subspace Y of a Baire space X is itself a Baire space. 
+\el
+\begin{proof}
+	Let $\{A_n\}$ be a countable collection of closed sets of $Y$ that have empty interiors in $Y$. We show that $\bigcup A_n$ has empty interior in $Y$. \par
+	Let $\overline{A_n}$ be the closure of $A_n$ in $X$; then $\overline{A_n}\cap Y=A_n$. The set $\overline{A_n}$ has empty interior in $X$. For if $U$ is a nonempty open set of $X$ contained in $\overline{A_n}$ then $U$ must intersect $A_n$ because it contains an adherence point of $A_n$, and therefore a point of $A_n$, since $U$ is open. Thus $U\cap Y$ is a nonempty open set of $Y$ contained in $A_n$, contrary to the hypothesis.
+\par
+	 If $\bigcup A_n$ contains the nonempty open set $W$ of $Y$, then $\bigcup \overline{A_n}$ also contains $W$, which is open in $X$ because $Y$ is open in $X$. But each set $\overline{A_n}$ has empty interior in $X$, contradicting the closed Baire condition.  
+\end{proof}
+\bet Let X be a topological space and (Y,d) a metric space. Let $f_n:X\rightarrow Y$ be a sequence of continuous functions that converges pointwise to $f(x)$ where $f:X\rightarrow Y$. If $X$ is a Baire space, the set of points at which $f$ is continuous is dense in $X$.  
+\et
+
+\begin{proof}
+	Given a positive integer $N$ and given $\epsilon>0$, define
+	\[ A_N(\epsilon)=\{x\ |\ d(f_n(x),f_m(x)\leq \epsilon,\ \forall n,m\geq N\}
+	\]
+	
+Note that $A_N(\epsilon)$ is closed in $X$, since the set of those $x$ for which $d(f_n(x),f_m(x))\leq \epsilon$ is closed in $X$ by continuity of $f_n$ and $f_m$, and $A_N(\epsilon)$ is the intersection of these sets for all $n,m\geq N$. \par For fixed $\epsilon$, note that $A_1(\epsilon)\subset A_2(\epsilon) \subset \dots$, and $\bigcup_{N\in \mbN} A_N(\epsilon)=X$. For, given $x_0\in X$, the fact that $f_n(x_0)\rightarrow f(x_0)$ implies that the sequence $(f_n(x_0))$ is Cauchy; hence $x_0\in A_N(\epsilon)$ for some $N$. \par Now let \[ U(\epsilon)=\bigcup_{N\in \mbN} A_N(\epsilon)^{\circ}
+\]
+We shall prove two things:
+\begin{enumerate}[(1)]
+	\item $U(\epsilon)$ is open and dense in X.
+	\item The function $f$ is continuous at each point of the set
+	\[ C=\bigcap_{n\in \mbN}U(\tfrac{1}{n}) 
+	\]
+The theorem follows from the fact that $C$ must be dense in $X$ because of the open Baire condition. 
+\end{enumerate}
+\par To show $U(\epsilon)$ is dense in $X$, it suffices to show that for any nonempty open set $V$ of $X$, there is an $N$ such that the set $V\cap A_N(\epsilon)^{\circ}$ is nonempty. For this purpose, we note first that for each $N$, the set $V\cap A_N(\epsilon)$ is closed in $V$, so we can represent $V$ as a countable union of closed sets:
+\[ V= V\cap X = V\cap \bigcup_{n\in \mbN}A_N(\epsilon)= \bigcup_{N\in \mbN} \bigg(V\cap A_N(\epsilon)\bigg)
+\]
+However, by Lemma 4, $V$ is also a Baire space, so it can't be the case that all $V\cap A_N(\epsilon)$ have empty interior; otherwise $V$ would also have an empty interior. Therefore, for some $M\in \mbN$, $V\cap A_M(\epsilon)$ contains some nonempty open set $W$ of $V$. Because $V$ is open in $X$, the set $W$ is open in $X$; therefore, it is contained in $A_M(\epsilon)^{\circ}$. 
+\par Now we show that if $x_0\in C$, then $f$ is continuous at $x_0$. Given $\epsilon>0$, we shall find a neighborhood W of $x_0$ such that $d(f(x),f(x_0))<\epsilon$ for $x\in W$. 
+\par First, choose $k$ such that $\frac{1}{k}<\frac{\epsilon}{3}$. Since $x_0\in C$, we have $x_0\in U(\frac{1}{k})$; therefore, there is an $N$ such that $x_0\in A_N(\frac{1}{k})^{\circ}$. Finally, continuity of the function $f_N$ enables us to choose a neighborhood $W$ of $x_0$, contained in $A_N(\frac{1}{k})$, such that \begin{enumerate}[i.]
+	\item \[ d(f_N(x), f_N(x_0))<\tfrac{\epsilon}{3} \ \ \forall x \in W\] 
+	The fact that $W \subset A_N(\frac{1}{k})$ implies that 
+	 \[ d(f_n(x),f_N(x))\leq \tfrac{1}{k} \ \ \forall n\geq N, x\in W\]
+	Using pointwise convergence of $f_n$ we obtain
+	\item \[ d(f(x),f_N(x))=\lim_{n\rightarrow \infty} d(f_n(x),f_N(x))\leq \tfrac{1}{k}<\tfrac{\epsilon}{3} \ \ \forall x\in W\]
+	In particular, since $x_0\in W$, we have
+	\item \[d(f(x_0),f_N(x_0))<\tfrac{\epsilon}{3}\]
+Applying triangle inequality we obtain:
+\[ d(f(x),f(x_0))\leq d(f(x),f_N(x))+d(f_N(x),f_N(x_0))+d(f_N(x_0),f(x_0))<\epsilon
+\]
+\end{enumerate}
+\end{proof}
+\section{Applications}
+
+\begin{enumerate}[1.]
+	\item \textit{ Let X equal the countable union $\bigcup B_n$. If X is a nonempty Baire space, at least one of the sets $\overline{B_n}$ has nonempty interior. }
+	\begin{proof}
+		This follows from the contrapositive of the closed Baire condition: $X$ has nonempty interior in itself, but $X$ is the countable union of closed sets $\bigcup \overline{B_n}$, so there must be at least one such $\overline{B_n}$ that does not have empty interior. 
+	\end{proof}
+	\item \textit{ If every point x of X has a neighborhood that is a Baire Space, then X is a Baire Space}
+	\begin{proof}
+		Using the open Baire condition, we need to show that if $\{V_n\}$ is a collection of open dense subsets in $X$, then $\bigcap_{n\in \mbN}V_n$ is dense in $X$. \par
+		Claim (1): Let $x\in X$ and let $W$ be an open neighborhood of $x$ that is a Baire space. Then $W\cap \bigcap_{n\in \mbN}V_n$ is dense in $W$. \par  Suppose that $W_0$ is a nonempty open subset of $W$; then $W_0$ is also open in $X$, and since each $V_n$ is dense in $X$ it follows that $V_n \cap W_0 \neq \emptyset$. Then 
+		\[W_0\cap (V_n\cap W)= V_n\cap (W\cap W_0)= V_n \cap W_0 \neq \emptyset
+		\]
+	so $V_n\cap W$ is dense in $W$ for all $n$. Since $W$ is a Baire Space, \[\bigcap_{n\in \mbN}V_n\cap W = W\cap \bigcap_{n\in \mbN}V_n\] is also dense in $W$. \par 
+	Claim (2): $\bigcap_{n\in \mbN}V_n $ is dense in $X$. \par  Let $U$ be a nonempty open subset of X, let $a\in U$, let $W_a$ be an open neighborhood of $a$ that is a Baire space, and let $U_0=U\cap W_a$, so $U_0$ is a non-empty open set of $W$. By claim (1), 
+		\[ U_0 \cap \bigg( W_a\cap \bigcap_{n\in \mbN}V_n \bigg) \neq \emptyset
+	\]
+	However this intersection is clearly contained in 
+	\[U\cap \bigcap_{n\in \mbN}V_n
+	\]
+	which must therefore also be nonempty. It follows that $\bigcap_{n\in \mbN}V_n$ is dense in $X$, so we conclude that $X$ is a Baire space. 
+	\end{proof}
+	\bdf A $G_{\delta}$ set of a space X is a countable intersection of open sets of $X$ and can be written $\cap_{n\in \mbN}G_n$.
+	\edf
+	
+	\bo  If $\bigcap_{n\in \mbN} G_n$ is dense in $\mbR$, then each $G_n$ is dense in $\mbR$.  
+	\eo 
+	\item \textit{If Y is a dense $G_{\delta}$ in X, and if X is a Baire Space, then Y is a Baire space in the subspace topology.}
+	\begin{proof}
+		Since $Y$ is a $G_{\delta}$ set of $X$, $Y=\bigcap_{n\in \mbN}G_n$ for sets $G_n$ which are open and dense in $X$. Now let $\{V_m\}$ be a countable collection of open dense subsets of $Y$. \par 
+		Claim (1): $\bigcap_{m\in \mbN}V_m$ is dense in $Y$. \par For each $m$ there is an open set $W_m$ of $X$ with $V_m=Y\cap W_m$.
+		\par \begin{enumerate}[] \item Claim (2): each $W_m$ is dense in $X$. 
+		\par Let $U$ be an nonempty open subset of $X$. Then $U\cap Y\neq \emptyset$, which is a nonempty open subset of $Y$, so $V_m\cap (U\cap Y) \neq \emptyset $. But
+		\[V_m\cap (U\cap Y)= (Y\cap W_m)\cap (U\cap Y)= W_m\cap (U\cap Y) \subset W_m\cap U\neq \emptyset
+		\]
+		This proves claim (2).
+		 \end{enumerate}
+		\par 
+		Since $X$ is a Baire space, $\bigcap_{n,m\in \mbN}G_n\cap W_m $is dense in $X$. But that intersection is 
+		\[\bigcap_{n,m\in \mbN}G_n\cap W_m= \bigcap_m \bigg(\bigcap_nG_n\bigg)\cap W_m= \bigcap_m Y\cap W_m= \bigcap_m V_m
+		\]
+		Now let $U$ be a nonempty open set of $Y$. Then there exists an open set $U'$ of $X$ such that $U'\cap Y=U$. But \[\emptyset \neq U'\cap \bigcap_m V_m= U'\cap \bigg(Y \bigcap W_m\bigg)=\bigg(U'\cap Y\bigg) \cap  \bigg(Y \bigcap W_m\bigg) = U \cap \bigcap_m V_m\].  This proves claim (1), so $Y$ is a Baire space.
+	\end{proof}
+	\item The irrationals with the subspace topology are a Baire space
+	\begin{proof}
+		The irrationals are a dense $G_{\delta}$ set of $\mbR$: $\bigcap_{q\in \mbQ}\mbR \backslash \{q\}$. Since $\mbR$ is a complete metric space, it is a Baire space by the Baire Category theorem. By (3), it follows that the irrationals are a Baire space. 
+	\end{proof}
+	\bdf Let $f:X \rightarrow Y$ where X is a topological space and Y is a metric space. The \textbf{oscillation of f} is defined at each $x\in X$ by \[\omega_f(x)= inf\{\text{diam}(f(U))| \text{U is an open set containing x}\}\]
+	Specifically, if $f:X\rightarrow \mbR$ is a real-valued function on a metric space, then the oscillation is
+	\[ \omega_f(x)=\lim_{\delta \rightarrow 0 }\text{diam}(f(B(x;\delta)))
+	\]
+	\edf
+	\bel A function f is continuous at a point $x_0$ if and only if the oscillation is zero.
+	\el 
+	\bdf An \textbf{$F_{\sigma}$} set of a space $X$ is a countable union of closed sets of X and can be written $\bigcup_{n\in \mbN}F_n$.
+	\edf
+	\bo The complement of an $F_{\sigma}$ set in $\mbR$ is a $G_{\delta}$ set. 
+	\eo
+	\item \textit{If $f:\mbR \rightarrow \mbR$, then the set C(f) of points at which f is continuous is a $G_{\delta}$ set in $\mbR$.}
+	\begin{proof}
+		First I claim that the set of discontinuities of $f$ is an $F_{\sigma}$ set. Define
+		\[F_n :=\{x: \omega_f(x)\geq \tfrac{1}{n}\}
+		\] 
+		Then
+		\[D(f)= \bigcup_{n\in \mbN} F_n
+		\]
+		Each set $F_n$ is closed: If $x$ is a limit point of $F_n$, it is enough to show $x\in F_n$. If $\delta>0$, $B(x;\delta)\cap F_n\neq \emptyset$, so there exists $a\in B(x;\delta)$ such that $\omega_f(a)\geq\frac{1}{n}$. However $a$ is contained in a smaller interval, say of radius $r$, such that \[ \tfrac{1}{n}\leq \text{diam}(f(B(a;r)))\leq \text{diam}(f(B(x;\delta)))\]
+		Since $\delta$ was arbitrary, we have
+		\[\lim_{\delta \rightarrow 0 }\text{diam}(f(B(x;\delta)))\geq \tfrac{1}{n} \Ra \omega_f(x)\geq \tfrac{1}{n}\Ra x\in F_n\]
+	
+so $F_n$ is closed. Since $D(f)$ is the countable union of closed sets, it is an $F_\sigma$ set of $\mbR$. Thus $\mbR \backslash D(f)=C(f)$ is a $G_{\delta}$ set by observation 2.
+	\end{proof}
+	
+	\item \textit{In $\mbR$, any $G_{\delta}$ set where each $G_n$ is dense in $\mbR$ must be uncountable}
+	\begin{proof}
+		Suppose $G=\bigcap_{n\in \mbN}G_n$ is a countable $G_{\delta}$ set of $\mbR$ where each $G_n$ is dense in $\mbR$. Then $G$ can be enumerated as $\{x_1,x_2, \dots\}$. Then The sets $G_n\backslash \{x_n\}$ are also open and dense in $\mbR$ for each $n$. Then $G'=\bigcap_{n\in \mbN}G_n\backslash \{x_n\}=\emptyset$. However $G'$ is the countable intersection of open dense sets. Since $\mbR$ is a Baire space, $G'$ should be dense in $\mbR$, which is a contradiction. 
+	\end{proof}
+	\bet There is no function $f:\mbR \rightarrow \mbR$ that is continuous precisely on a countable dense subset of $\mbR$
+	\et
+	\begin{proof}
+		Follows directly from (5) and (6). 
+	\end{proof}
+	\bet If $(f_n)$ is a sequence of continuous functions $f_n:\mbR \rightarrow \mbR$ such that  $(f_n)$ converges pointwise to a function f on $\mbR$, then C(f) is uncountable.
+	\et 
+	\begin{proof}
+		By Theorem 2, $C(f)$ is dense in $\mbR$ and by (5), $C(f)$ is a $G_{\delta}$ set in $\mbR$. By Observation 1 and (6), $C(f)$ must be uncountable. 
+	\end{proof}
+\end{enumerate}
+
+\noindent\rule[0.5ex]{\linewidth}{1pt}
+\textit{ References:\\ \\
+ Munkres Topology, chapter 8: Baire Spaces\\
+ Carothers, Real Analysis; chapter 9: Category\\
+ Quora\\
+ Wikipedia\\
+ }
+\end{document}

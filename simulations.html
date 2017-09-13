@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Harrison Tietze" />
+
+
+<title>Simulation</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+<link rel="stylesheet" href="faded.css" type="text/css" />
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Harrison's website</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About Me</a>
+</li>
+<li>
+  <a href="simulations.html">simulations</a>
+</li>
+<li>
+  <a href="certificates.html">certificates</a>
+</li>
+<li>
+  <a href="topology.html">Baire Space</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">Simulation</h1>
+<h4 class="author"><em>Harrison Tietze</em></h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#methods-of-generating-random-variables"><span class="toc-section-number">1</span> Methods of Generating Random Variables</a><ul>
+<li><a href="#inverse-transform-method"><span class="toc-section-number">1.1</span> Inverse Transform Method</a></li>
+<li><a href="#understanding-the-inverse-transform-method"><span class="toc-section-number">1.2</span> Understanding the Inverse Transform Method</a></li>
+<li><a href="#acceptance-rejection-method"><span class="toc-section-number">1.3</span> Acceptance-Rejection Method</a></li>
+<li><a href="#convolutions"><span class="toc-section-number">1.4</span> Convolutions</a></li>
+<li><a href="#a-mixture-of-gammas"><span class="toc-section-number">1.5</span> A Mixture of Gammas</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="methods-of-generating-random-variables" class="section level1">
+<h1><span class="header-section-number">1</span> Methods of Generating Random Variables</h1>
+<div id="inverse-transform-method" class="section level2">
+<h2><span class="header-section-number">1.1</span> Inverse Transform Method</h2>
+<p>Let’s simulate a random sample from a distribution with density <span class="math inline">\(f(x) = \frac{3}{32}x^5 \ \ \  0&lt;x&lt;2\)</span>. We find the distribution to be <span class="math inline">\(F_X(x) = \frac{x^6}{64}\)</span> and its inverse <span class="math inline">\(x= F^{-1}_X(u) = 2u^{\frac{1}{6}}\)</span> where <span class="math inline">\(U \sim \text{Uniform}[0,1]\)</span> by the probability integral transform. We can now sample values of x:</p>
+<pre class="r"><code>n &lt;- 1000
+u &lt;- runif(n)
+x &lt;- 2*u^(1/6)
+hist(x, probability = TRUE, main = expression(f(x)==textstyle(frac(3,32))*x^5))
+y &lt;- seq(0, 2, .01)
+lines(y, 3/32 * y^5)</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="understanding-the-inverse-transform-method" class="section level2">
+<h2><span class="header-section-number">1.2</span> Understanding the Inverse Transform Method</h2>
+<p>How did we get this uniform random variable? There is a method to the madness.</p>
+<p>Let’s take a look at our CDF:</p>
+<p><img src="simulations_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>Geometrically, we have a smooth mapping that is contracting the the interval <span class="math inline">\([0,2]\)</span> to the interval <span class="math inline">\([0,1]\)</span>. However, this is not being done evenly. Let’s bin the x-axis into intervals of width <span class="math inline">\(.25\)</span> and compute the direct image of each bin.</p>
+<table>
+<caption>Note infinitesimals truncated to 0</caption>
+<thead>
+<tr class="header">
+<th align="left">bin</th>
+<th align="left">image</th>
+<th align="right">img_length</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">[0 , 0.25]</td>
+<td align="left">[0 , 0]</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="even">
+<td align="left">[0.25 , 0.5]</td>
+<td align="left">[0 , 0]</td>
+<td align="right">0.000</td>
+</tr>
+<tr class="odd">
+<td align="left">[0.5 , 0.75]</td>
+<td align="left">[0 , 0.003]</td>
+<td align="right">0.003</td>
+</tr>
+<tr class="even">
+<td align="left">[0.75 , 1]</td>
+<td align="left">[0.003 , 0.016]</td>
+<td align="right">0.013</td>
+</tr>
+<tr class="odd">
+<td align="left">[1 , 1.25]</td>
+<td align="left">[0.016 , 0.06]</td>
+<td align="right">0.044</td>
+</tr>
+<tr class="even">
+<td align="left">[1.25 , 1.5]</td>
+<td align="left">[0.06 , 0.178]</td>
+<td align="right">0.118</td>
+</tr>
+<tr class="odd">
+<td align="left">[1.5 , 1.75]</td>
+<td align="left">[0.178 , 0.449]</td>
+<td align="right">0.271</td>
+</tr>
+<tr class="even">
+<td align="left">[1.75 , 2]</td>
+<td align="left">[0.449 , 1]</td>
+<td align="right">0.551</td>
+</tr>
+</tbody>
+</table>
+<p>We partition the domain into bins of equal length, which under the image of the CDF, paritions the interval <span class="math inline">\([0,1]\)</span> into bins of <em>very</em> unequal length. If we then sample uniformly from the interval <span class="math inline">\([0,1]\)</span> and return each point to its original bin (i.e take the inverse), we will end up with our original distribution</p>
+<p><img src="simulations_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>The image length is just the proportion of points sampled uniformly from [0,1] whose inverse falls into the specified bin.</p>
+</div>
+<div id="acceptance-rejection-method" class="section level2">
+<h2><span class="header-section-number">1.3</span> Acceptance-Rejection Method</h2>
+<p>Suppose we are told that a coin is flipped 50 times, 10 of which land heads. We want to simulate a sample of possibles values for the bias of the coin. We can model our belief about the bias as a beta distribution with parameters <code>a = 10</code> and <code>b = 40</code> with density <span class="math display">\[f(x) = \frac{49!}{9!39!}x^9(1-x)^{39}\]</span> <img src="simulations_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>We will use the uniform distribution as our <code>g(x)</code> since it has the same domain and is easy to sample from. Now we solve for the threshold parameter <code>c</code> which satisfies: <span class="math display">\[ \forall x \in [0,1]: \hspace{2mm}  \frac{f(x)}{g(x)} = \frac{49!}{9!39!}x^9(1-x)^{39} &lt; c\]</span>. To solve for <code>c</code>, our graph of the density reveals we should choose the mode of the distribution for our choice of <code>x</code>. which has a convenient formula: <span class="math display">\[mode = \frac{(a-1)}{(a+b-2)}\]</span></p>
+<p>The mode of the beta distribution is 0.1875 and we calculate that c = 7.159. It follows that a random <code>x</code> from <code>g(x)</code> is accepted if <span class="math display">\[\frac{f(x)}{cg(x)} = \frac{\frac{49!}{9!39!}x^9(1-x)^{39}}{7.159} &gt; u\]</span></p>
+<p>for some random uniform <code>u</code>.</p>
+<pre class="r"><code>n &lt;- 1000  #target sample size
+k &lt;- 0     #counter for accepted
+j &lt;- 0     #iterations
+y &lt;- numeric(n)
+acceptance_ratio &lt;- function(x){beta_density(x)/my_c}
+
+while(k &lt; n){
+  acceptance_threshold &lt;- runif(1)
+  j &lt;- j + 1
+  x &lt;- runif(1)    #random variate from g
+  if(acceptance_ratio(x) &gt; acceptance_threshold){
+    #accept x
+    k &lt;- k + 1
+    y[k] &lt;-  x
+  }
+}</code></pre>
+<p>In this simulation, j = 7270 iterations were required to generate a sample of n = 1000 variates, compared to the expected <span class="math inline">\(cn =\)</span> 7159 iterations. Comparing the empirical and theoretical deciles confirms that our sample fits the beta distribution.</p>
+<table>
+<caption>Pariwise comparison of empirical and theorectical quantile</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">10%</th>
+<th align="right">20%</th>
+<th align="right">30%</th>
+<th align="right">40%</th>
+<th align="right">50%</th>
+<th align="right">60%</th>
+<th align="right">70%</th>
+<th align="right">80%</th>
+<th align="right">90%</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Qsim</td>
+<td align="right">0.1247911</td>
+<td align="right">0.1478409</td>
+<td align="right">0.1635175</td>
+<td align="right">0.1753977</td>
+<td align="right">0.1890356</td>
+<td align="right">0.2036511</td>
+<td align="right">0.2181310</td>
+<td align="right">0.2399837</td>
+<td align="right">0.2703473</td>
+</tr>
+<tr class="even">
+<td>Q</td>
+<td align="right">0.1308707</td>
+<td align="right">0.1515751</td>
+<td align="right">0.1675891</td>
+<td align="right">0.1819719</td>
+<td align="right">0.1959798</td>
+<td align="right">0.2105138</td>
+<td align="right">0.2266215</td>
+<td align="right">0.2461659</td>
+<td align="right">0.2744112</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="convolutions" class="section level2">
+<h2><span class="header-section-number">1.4</span> Convolutions</h2>
+<p>Let <span class="math inline">\(X_1 \dots X_n\)</span> be an i.i.d list of random variables such that <span class="math inline">\(X_j \sim X\)</span>. The distribution of their sum <span class="math inline">\(S = X_1 + \dots + X_n\)</span> is called the n-fold convolution of <span class="math inline">\(X\)</span> and has distribution <span class="math inline">\(F^{*(n)}_X\)</span>. For exapmle, the chi-squared distribution with degree of freedom <span class="math inline">\(\nu\)</span> is the <span class="math inline">\(\nu\)</span>-fold convolution of squared standard normals. Let’s use this fact to simulate a random sample of size <span class="math inline">\(n\)</span> from a <span class="math inline">\(\chi^2_{\nu}\)</span> distribution.</p>
+<pre class="r"><code>library(tidyverse)
+n &lt;- 1000
+nu &lt;- 6
+X &lt;- matrix(rnorm(n*nu), n, nu)^2
+y &lt;- rowSums(X)
+
+comp &lt;- data.frame(
+theoretical = c(nu, 2*nu),
+empirical = c(mean(y), mean(y^2) - (mean(y))^2),
+row.names = c(&quot;mean&quot;, &quot;variance&quot;)
+)
+
+knitr::kable(comp)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">theoretical</th>
+<th align="right">empirical</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>mean</td>
+<td align="right">6</td>
+<td align="right">6.141139</td>
+</tr>
+<tr class="even">
+<td>variance</td>
+<td align="right">12</td>
+<td align="right">11.538733</td>
+</tr>
+</tbody>
+</table>
+<p>We have accurately generated a chi-squared random sample.</p>
+</div>
+<div id="a-mixture-of-gammas" class="section level2">
+<h2><span class="header-section-number">1.5</span> A Mixture of Gammas</h2>
+<p>A discrete mixture of random variables has a distribution <span class="math display">\[F_X = \sum_{j=1}^n\theta_j F_{X_j}\]</span> where our weights <span class="math inline">\(\theta_j\)</span> sum to 1 and <span class="math inline">\(X_1 \dots X_n\)</span> is any sequence of random variables.</p>
+<p>Here I will investigate the behavior of a specific mixture of gamma random variables given by <span class="math display">\[X_j \sim \text{Gamma}(r,\  \lambda_j = \frac{1}{j})\]</span> <span class="math display">\[\theta_j = \frac{2j}{n(n+1)}\]</span> <span class="math display">\[1\leq j \leq n\]</span>. Our mixed random variable is <span class="math inline">\(Y_n\)</span> with distribution <span class="math display">\[F_{Y_n} = \sum_{j=1}^n\theta_j F_{X_j}\]</span></p>
+<p>I will simulate from mixtures of different sizes. Notice that in our mixture, the contribution of variables appearing later in the sequence is much higher than that of the previous ones. I hyopthesize that as <span class="math inline">\(n\)</span> increases, <span class="math inline">\(F_{Y_n} \rightarrow F_{X_n}\)</span>.</p>
+<pre class="r"><code>library(tidyverse)
+
+N &lt;- 1000 # sample size
+n &lt;- 50
+r &lt;- 3
+gamma_mixture &lt;- function(n = 50, r = 3, N = 1000){
+  # n is the number of variables we are mixing
+  # N is the sample size we a generating 
+  index &lt;- 1:n
+  weights &lt;- index/((n*(n+1))/2)
+  index_sample &lt;- sample(index, size = N, replace = TRUE, prob = weights)
+  lambda &lt;- 1/index_sample
+  mixture_sample &lt;- rgamma(N, shape = r, rate = lambda)
+  mixture_sample
+}
+
+sizes &lt;- c(50, 200, 1000)
+
+sizes %&gt;%
+  map(function(x) gamma_mixture(n = x)) -&gt;
+  mixture_list
+
+sizes %&gt;%
+  map(function(x) rgamma(N, shape = r, rate = 1/x)) -&gt; 
+  gamma_list
+
+df &lt;- tibble(
+  data = c(mixture_list, gamma_list),
+  n_size = rep(sizes, times = 2),
+  distribution = factor(rep(c(&quot;mixture&quot;, &quot;gamma&quot;), each = 3), levels = c(&quot;mixture&quot;, &quot;gamma&quot;))
+)
+
+library(magrittr)
+library(scales)
+df %&lt;&gt;% unnest()
+
+ggplot(data = df, aes(x = data)) +
+  geom_density(position = &quot;stack&quot;, aes(color = distribution)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 3)) +
+  facet_grid(. ~n_size, scales = &quot;free&quot;,  labeller = label_bquote(cols = n == .(n_size)))</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>The graphs supports our hypothesis that the similarity between the distributions of <span class="math inline">\(Y_n\)</span> and <span class="math inline">\(X_n\)</span> gets stronger as <span class="math inline">\(n\)</span> increases. You can see the sharp peak of the mixture distribution rapidly flattens out to match the gamma distribution. Note the variance of a gamma random variable <span class="math inline">\(X_n\)</span> with rate parameter <span class="math inline">\(\frac{1}{n}\)</span> and shape parameter <span class="math inline">\(r\)</span> is <span class="math display">\[ Var[X_n] = n^2r\]</span></p>
+<p>so the variance increases exponentially with our choice of <span class="math inline">\(n\)</span>, flattening out the graph. In contrast, our gamma mixture takes contributions from all <span class="math inline">\(X_{1\leq j\leq n}\)</span> so it will have less variance and thus a sharper peak.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

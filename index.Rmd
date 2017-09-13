@@ -1,5 +1,9 @@
 ---
-title: "Harrison's Website"
+title: "Data Explorations"
+output:
+  html_document
 ---
 
-Just a solem simulacrum here.
+<i style="color: blue"> “We live in a world where there is more and more information, and less and less meaning.”</i> 
+
+― Jean Baudrillard, Simulacra and Simulation

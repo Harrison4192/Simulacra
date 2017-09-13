@@ -7,3 +7,9 @@ navbar:
       href: index.html
     - text: "About Me"
       href: about.html
+    - text: "simulations"
+      href: simulations.html
+    - text: "certificates"
+      href: certificates.html
+    - text: "Baire Space"
+      href: topology.html
