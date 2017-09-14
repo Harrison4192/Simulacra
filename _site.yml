@@ -13,3 +13,5 @@ navbar:
       href: certificates.html
     - text: "Baire Space"
       href: topology.html
+    - text: "KDE"
+      href: KDE.html
