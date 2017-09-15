@@ -9,6 +9,7 @@ output:
 ---
 
 ```{r echo=FALSE, message=FALSE}
+opts_chunk$set(cache=TRUE)
 library(tidyverse)
 library(stringr)
 ```

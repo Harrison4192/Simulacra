@@ -1,0 +1,9 @@
+---
+title: "Shifting Baselines"
+subtitle: "a very serious maritime space-opera"
+output: 
+  html_document
+---
+
+<iframe src="https://docs.google.com/document/d/e/2PACX-1vTnpiuuxd0-ia3SMAk1SGusAyLyvwPN-wsl_dQCIC6Nglj0WgyTne0nYS1JISZZI6H-ym631b9B0kr0/pub?embedded=true" width=960 px, height=1024 px></iframe>
+
