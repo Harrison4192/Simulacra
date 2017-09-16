@@ -224,6 +224,11 @@ $(document).ready(function () {
 <li><a href="#convolutions"><span class="toc-section-number">1.4</span> Convolutions</a></li>
 <li><a href="#a-mixture-of-gammas"><span class="toc-section-number">1.5</span> A Mixture of Gammas</a></li>
 </ul></li>
+<li><a href="#monte-carlo-integration"><span class="toc-section-number">2</span> Monte-Carlo Integration</a><ul>
+<li><a href="#simple-monte-carlo-estimator"><span class="toc-section-number">2.1</span> Simple Monte Carlo Estimator</a></li>
+<li><a href="#estimating-standard-error"><span class="toc-section-number">2.2</span> Estimating Standard Error</a></li>
+<li><a href="#general-monte-carlo-integration"><span class="toc-section-number">2.3</span> General Monte-Carlo Integration</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -456,6 +461,42 @@ ggplot(data = df, aes(x = data)) +
 <p><img src="simulations_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
 <p>The graphs supports our hypothesis that the similarity between the distributions of <span class="math inline">\(Y_n\)</span> and <span class="math inline">\(X_n\)</span> gets stronger as <span class="math inline">\(n\)</span> increases. You can see the sharp peak of the mixture distribution rapidly flattens out to match the gamma distribution. Note the variance of a gamma random variable <span class="math inline">\(X_n\)</span> with rate parameter <span class="math inline">\(\frac{1}{n}\)</span> and shape parameter <span class="math inline">\(r\)</span> is <span class="math display">\[ Var[X_n] = n^2r\]</span></p>
 <p>so the variance increases exponentially with our choice of <span class="math inline">\(n\)</span>, flattening out the graph. In contrast, our gamma mixture takes contributions from all <span class="math inline">\(X_{1\leq j\leq n}\)</span> so it will have less variance and thus a sharper peak.</p>
+</div>
+</div>
+<div id="monte-carlo-integration" class="section level1">
+<h1><span class="header-section-number">2</span> Monte-Carlo Integration</h1>
+<div id="simple-monte-carlo-estimator" class="section level2">
+<h2><span class="header-section-number">2.1</span> Simple Monte Carlo Estimator</h2>
+<p>We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. Recall that if <span class="math inline">\(X\)</span> is a random variable with density <span class="math inline">\(f(x)\)</span>, then the mathematical expectation of the random variable <span class="math inline">\(Y = g(X)\)</span> is <span class="math display">\[ E[g(X)] = \int_{\chi}g(x)f(x)dx\]</span> where <span class="math inline">\(\chi\)</span> is the support of the density. A simple case occurs when integrating a function <span class="math inline">\(g(x)\)</span> over <span class="math inline">\([0,1]\)</span> because we can use uniform random variables. <span class="math display">\[\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx\]</span>. We can then generate a random sample of uniforms <span class="math inline">\(X_1 \dots X_m\)</span> to estimate <span class="math inline">\(\theta\)</span>: <span class="math display">\[\widehat{\theta} = \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)\]</span> By the law of large numbers <span class="math display">\[P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|&lt;\epsilon \bigg) = 1\]</span>. So we can expect that our estimate will approximate the true value of the integral given a large enough sample. Let’s use this to estimate <span class="math display">\[\theta = \int_0^1 e^{-x}dx\]</span> and compare the estimate with the exact value.</p>
+<pre class="r"><code>m &lt;- 10000
+x &lt;- runif(m)
+theta.hat &lt;- round(mean(exp(-x)),6)
+soln &lt;- round(1-exp(-1),6)
+st_err &lt;- format((1/m)*(sum(exp(-x)-theta.hat)^2)^(1/2), digits = 3)</code></pre>
+<p>The estimate is <span class="math inline">\(\widehat{\theta}=\)</span> 0.631785 and <span class="math inline">\(\theta = 1 -e^{-1}\)</span> = 0.632121.</p>
+</div>
+<div id="estimating-standard-error" class="section level2">
+<h2><span class="header-section-number">2.2</span> Estimating Standard Error</h2>
+<p>We can quantify the accuracy of our estimate. Note that in statistical parlance <span class="math inline">\(\theta\)</span> is a parameter we want to estimate, and our estimator is a sample statistic <span class="math display">\[\widehat{\theta}_m = T(g(X_1), \dots g(X_m))\]</span> The population distribution of our sample statistic is called the sampling distribution. We want to find the standard deviaton of the sampling distribution called the standard error, denoted <span class="math inline">\(SE(\widehat{\theta}_m)\)</span>. Since our estimator is a sample mean from the distribution of <span class="math inline">\(g(X)\)</span>, we can estimate the standard error with <span class="math display">\[SE(\widehat{\theta}_m) = \frac{\widehat{\sigma}}{\sqrt{m}} = \frac{1}{m}\left\{\sum_{i=1}^m|g(x_i)-\overline{g(x)}]^2\right\}^{\frac{1}{2}}\]</span></p>
+<p>Using this formula we calculate <span class="math inline">\(SE(\widehat{\theta}_{10^5})\)</span> = 4.61e-07 for the previous example.</p>
+</div>
+<div id="general-monte-carlo-integration" class="section level2">
+<h2><span class="header-section-number">2.3</span> General Monte-Carlo Integration</h2>
+<p>Suppose that an integral can be written in the form <span class="math display">\[\int_{\chi}h(x)f(x)dx = E[h(X)]\]</span> where <span class="math inline">\(f\)</span> is a density with support <span class="math inline">\(\chi\)</span> and the integral exists. Then, we can estimate <span class="math inline">\(E[h(X)]\)</span> by generating a random sample <span class="math inline">\(X_1 \dots X_m\)</span> from a distribution with pdf <span class="math inline">\(f\)</span> and using the sample mean <span class="math display">\[\frac{1}{N}\sum_{i=1}^Nh(X_i)\]</span></p>
+<p>Now if we need to integrate some function <span class="math inline">\(r(x)\)</span> over a domain <span class="math inline">\(\chi\)</span>, we need to find a suitable density with support <span class="math inline">\(\chi\)</span> and let <span class="math inline">\(h(x)= \frac{r(x)}{f(x)}\)</span>. For example, consider <span class="math display">\[\int_0^{\infty}\sin(x^2)e^{-x^2}dx\]</span> If we choose <span class="math inline">\(X \sim \exp(\lambda = 1)\)</span> then <span class="math inline">\(f(x) = e^{-x}\)</span> on <span class="math inline">\(x\geq 0\)</span> and <span class="math display">\[h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + 1}\]</span></p>
+<pre class="r"><code>m &lt;- 10^5
+sample &lt;- rexp(m, rate = 1)
+h &lt;- function(x){
+  sin(x^2)*exp(-x^2 + 1)
+}
+estimate &lt;- sum(h(sample))/m
+
+estimate</code></pre>
+<pre><code>## [1] 0.3373272</code></pre>
+<p>However, evaluating in Mathematica gives:</p>
+<p><span class="math display">\[\pmb{\text{}}\\
+\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+1}, \{x, 0 , \text{Infinity}\}\right]}\]</span> <span class="math display">\[\frac{e \sqrt{\pi }\ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.775214\]</span></p>
+<p>It looks like our estimate is very poor!</p>
 </div>
 </div>
 

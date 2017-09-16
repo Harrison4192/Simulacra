@@ -217,3 +217,54 @@ ggplot(data = df, aes(x = data)) +
 The graphs supports our hypothesis that the similarity between the distributions of $Y_n$ and $X_n$  gets stronger as $n$ increases. You can see the sharp peak of the mixture distribution rapidly flattens out to match the gamma distribution. Note the variance of a gamma random variable $X_n$ with rate parameter $\frac{1}{n}$ and shape parameter $r$ is $$ Var[X_n] = n^2r$$
 
 so the variance increases exponentially with our choice of $n$, flattening out the graph. In contrast, our gamma mixture takes contributions from all $X_{1\leq j\leq n}$ so it will have less variance and thus a sharper peak. 
+
+# Monte-Carlo Integration
+
+## Simple Monte Carlo Estimator
+
+We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. Recall that if $X$ is a random variable with density $f(x)$, then the mathematical expectation of the random variable $Y = g(X)$ is $$ E[g(X)] = \int_{\chi}g(x)f(x)dx$$ where $\chi$ is the support of the density. A simple case occurs when integrating a function $g(x)$ over $[0,1]$ because we can use uniform random variables. $$\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx$$. We can then generate a random sample of uniforms $X_1 \dots X_m$ to estimate $\theta$: $$\widehat{\theta} = \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)$$
+By the law of large numbers $$P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|<\epsilon \bigg) = 1$$. So we can expect that our estimate will approximate the true value of the integral given a large enough sample. Let's use this to estimate $$\theta = \int_0^1 e^{-x}dx$$ and compare the estimate with the exact value.
+
+```{r}
+m <- 10000
+x <- runif(m)
+theta.hat <- round(mean(exp(-x)),6)
+soln <- round(1-exp(-1),6)
+st_err <- format((1/m)*(sum(exp(-x)-theta.hat)^2)^(1/2), digits = 3)
+
+```
+
+The estimate is $\widehat{\theta}=$ `r theta.hat` and $\theta = 1 -e^{-1}$ = `r soln`. 
+
+##Estimating Standard Error
+
+We can quantify the accuracy of our estimate. Note that in statistical parlance $\theta$ is a parameter we want to estimate, and our estimator is a sample statistic $$\widehat{\theta}_m = T(g(X_1), \dots g(X_m))$$ The population distribution of our sample statistic is called the sampling distribution. We want to find the standard deviaton of the sampling distribution called the standard error, denoted $SE(\widehat{\theta}_m)$. Since our estimator is a sample mean from the distribution of $g(X)$, we can estimate the standard error with $$SE(\widehat{\theta}_m) = \frac{\widehat{\sigma}}{\sqrt{m}} = \frac{1}{m}\left\{\sum_{i=1}^m|g(x_i)-\overline{g(x)}]^2\right\}^{\frac{1}{2}}$$
+
+Using this formula we calculate $SE(\widehat{\theta}_{10^5})$ = `r st_err` for the previous example. 
+
+## General Monte-Carlo Integration
+
+Suppose that an integral can be written in the form $$\int_{\chi}h(x)f(x)dx = E[h(X)]$$ where $f$ is a density with support $\chi$ and the integral exists. Then, we can estimate $E[h(X)]$ by generating a random sample $X_1 \dots X_m$ from a distribution with pdf $f$ and using the sample mean $$\frac{1}{N}\sum_{i=1}^Nh(X_i)$$
+
+Now if we need to integrate some function $r(x)$ over a domain $\chi$, we need to find a suitable density with support $\chi$ and let $h(x)= \frac{r(x)}{f(x)}$. For example, consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + 1}$$
+ 
+ 
+```{r}
+m <- 10^5
+sample <- rexp(m, rate = 1)
+h <- function(x){
+  sin(x^2)*exp(-x^2 + 1)
+}
+estimate <- sum(h(sample))/m
+
+estimate
+
+```
+However, evaluating in Mathematica gives:
+
+
+$$\pmb{\text{}}\\
+\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+1}, \{x, 0 , \text{Infinity}\}\right]}$$ 
+$$\frac{e \sqrt{\pi }\ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.775214$$
+
+It looks like our estimate is very poor!
