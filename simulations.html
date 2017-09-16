@@ -483,19 +483,19 @@ st_err &lt;- format((1/m)*(sum(exp(-x)-theta.hat)^2)^(1/2), digits = 3)</code></
 <div id="general-monte-carlo-integration" class="section level2">
 <h2><span class="header-section-number">2.3</span> General Monte-Carlo Integration</h2>
 <p>Suppose that an integral can be written in the form <span class="math display">\[\int_{\chi}h(x)f(x)dx = E[h(X)]\]</span> where <span class="math inline">\(f\)</span> is a density with support <span class="math inline">\(\chi\)</span> and the integral exists. Then, we can estimate <span class="math inline">\(E[h(X)]\)</span> by generating a random sample <span class="math inline">\(X_1 \dots X_m\)</span> from a distribution with pdf <span class="math inline">\(f\)</span> and using the sample mean <span class="math display">\[\frac{1}{N}\sum_{i=1}^Nh(X_i)\]</span></p>
-<p>Now if we need to integrate some function <span class="math inline">\(r(x)\)</span> over a domain <span class="math inline">\(\chi\)</span>, we need to find a suitable density with support <span class="math inline">\(\chi\)</span> and let <span class="math inline">\(h(x)= \frac{r(x)}{f(x)}\)</span>. For example, consider <span class="math display">\[\int_0^{\infty}\sin(x^2)e^{-x^2}dx\]</span> If we choose <span class="math inline">\(X \sim \exp(\lambda = 1)\)</span> then <span class="math inline">\(f(x) = e^{-x}\)</span> on <span class="math inline">\(x\geq 0\)</span> and <span class="math display">\[h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + 1}\]</span></p>
+<p>Now if we need to integrate some function <span class="math inline">\(r(x)\)</span> over a domain <span class="math inline">\(\chi\)</span>, we need to find a suitable density with support <span class="math inline">\(\chi\)</span> and let <span class="math inline">\(h(x)= \frac{r(x)}{f(x)}\)</span>. For example, consider <span class="math display">\[\int_0^{\infty}\sin(x^2)e^{-x^2}dx\]</span> If we choose <span class="math inline">\(X \sim \exp(\lambda = 1)\)</span> then <span class="math inline">\(f(x) = e^{-x}\)</span> on <span class="math inline">\(x\geq 0\)</span> and <span class="math display">\[h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}\]</span></p>
 <pre class="r"><code>m &lt;- 10^5
 sample &lt;- rexp(m, rate = 1)
 h &lt;- function(x){
-  sin(x^2)*exp(-x^2 + 1)
+  sin(x^2)*exp(-x^2 + x)
 }
 estimate &lt;- sum(h(sample))/m
 
 estimate</code></pre>
-<pre><code>## [1] 0.3373272</code></pre>
+<pre><code>## [1] 0.2853661</code></pre>
 <p>However, evaluating in Mathematica gives:</p>
 <p><span class="math display">\[\pmb{\text{}}\\
-\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+1}, \{x, 0 , \text{Infinity}\}\right]}\]</span> <span class="math display">\[\frac{e \sqrt{\pi }\ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.775214\]</span></p>
+\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+x}, \{x, 0 , \text{Infinity}\}\right]} = 0.711649\]</span></p>
 <p>It looks like our estimate is very poor!</p>
 </div>
 </div>

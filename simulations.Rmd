@@ -246,14 +246,14 @@ Using this formula we calculate $SE(\widehat{\theta}_{10^5})$ = `r st_err` for t
 
 Suppose that an integral can be written in the form $$\int_{\chi}h(x)f(x)dx = E[h(X)]$$ where $f$ is a density with support $\chi$ and the integral exists. Then, we can estimate $E[h(X)]$ by generating a random sample $X_1 \dots X_m$ from a distribution with pdf $f$ and using the sample mean $$\frac{1}{N}\sum_{i=1}^Nh(X_i)$$
 
-Now if we need to integrate some function $r(x)$ over a domain $\chi$, we need to find a suitable density with support $\chi$ and let $h(x)= \frac{r(x)}{f(x)}$. For example, consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + 1}$$
+Now if we need to integrate some function $r(x)$ over a domain $\chi$, we need to find a suitable density with support $\chi$ and let $h(x)= \frac{r(x)}{f(x)}$. For example, consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}$$
  
  
 ```{r}
 m <- 10^5
 sample <- rexp(m, rate = 1)
 h <- function(x){
-  sin(x^2)*exp(-x^2 + 1)
+  sin(x^2)*exp(-x^2 + x)
 }
 estimate <- sum(h(sample))/m
 
@@ -264,7 +264,6 @@ However, evaluating in Mathematica gives:
 
 
 $$\pmb{\text{}}\\
-\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+1}, \{x, 0 , \text{Infinity}\}\right]}$$ 
-$$\frac{e \sqrt{\pi }\ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.775214$$
+\pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2+x}, \{x, 0 , \text{Infinity}\}\right]} = 0.711649$$ 
 
 It looks like our estimate is very poor!
