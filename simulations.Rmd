@@ -222,7 +222,7 @@ so the variance increases exponentially with our choice of $n$, flattening out t
 
 ## Simple Monte Carlo Estimator
 
-We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. Recall that if $X$ is a random variable with density $f(x)$, then the mathematical expectation of the random variable $Y = g(X)$ is $$ E[g(X)] = \int_{\chi}g(x)f(x)dx$$ where $\chi$ is the support of the density. A simple case occurs when integrating a function $g(x)$ over $[0,1]$ because we can use uniform random variables. $$\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx$$. We can then generate a random sample of uniforms $X_1 \dots X_m$ to estimate $\theta$: $$\widehat{\theta} = \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)$$
+We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. In this case the quantity we want to estimate is really the value of an integral $\theta = \int_{\chi}g(x)dx$. The connection between generic integrals and random variables is given by the definition of expectation of a transformed random variable.  Recall that if $X$ is a random variable with density $f(x)$, then the mathematical expectation of the transformed random variable $g(X)$ is $$ \mathbb{E}_f[g(X)] = \int_{\chi}g(x)f(x)dx$$ where $\chi$ is the support of the density $f$. A simple case occurs when integrating a function $g(x)$ over $[0,1]$ because we can use uniform random variables. $$\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx$$. We can then generate a random sample of uniforms $X_1 \dots X_m$ to get the monte-carlo estimate of $\theta$: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[g(X)]} =  \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)$$
 By the law of large numbers $$P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|<\epsilon \bigg) = 1$$. So we can expect that our estimate will approximate the true value of the integral given a large enough sample. Let's use this to estimate $$\theta = \int_0^1 e^{-x}dx$$ and compare the estimate with the exact value.
 
 ```{r}
@@ -244,9 +244,9 @@ Using this formula we calculate $SE(\widehat{\theta}_{10^5})$ = `r st_err` for t
 
 ## General Monte-Carlo Integration
 
-Suppose that an integral can be written in the form $$\int_{\chi}h(x)f(x)dx = E[h(X)]$$ where $f$ is a density with support $\chi$ and the integral exists. Then, we can estimate $E[h(X)]$ by generating a random sample $X_1 \dots X_m$ from a distribution with pdf $f$ and using the sample mean $$\frac{1}{m}\sum_{i=1}^mh(X_i)$$
-
-Now if we need to integrate some function $r(x)$ over a domain $\chi$, we need to find a suitable density with support $\chi$ and let $h(x)= \frac{r(x)}{f(x)}$. For example, consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}$$
+We need not limit ourselves to uniform random variables for our monte-carlo estimator. Suppose we want to estimate the quantity $\theta = \int_{\chi}g(x)dx$. We can look for a random variable $X$ that is supported on $\chi$ and easy to sample from. Then we define the transformation $h(X) = \frac{g(X)}{f(X)}$. Taking the expectation gives us$$
+\mathbb{E}_f[g(X)] = \int_{\chi}\frac{g(x)f(x)}{f(x)}dx = \int_{\chi}g(x)dx$$ We can get a monte-carlo estimate of $\theta$ using the sample mean: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[h(X)]}  = \frac{1}{m}\sum_{i=1}^m\frac{g(X_i)}{f(X_i)}$$
+Note that the example in (2.1) is special case where $f(X_i) = 1$ because we are using uniform random variables. In this example we will consider a function defined on an infinite domain, so we cannot choose any uniform pdf for our $f$. Consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}$$
  
  
 ```{r}
@@ -265,3 +265,8 @@ Our Monte Carlo estimate $\widehat{\theta}$ = `r estimate` approximates the true
 $$\pmb{\text{}}\\
 \pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2}, \{x, 0 , \text{Infinity}\}\right]} = \frac{\sqrt{\pi } \ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.285185$$ 
 
+## Importance Sampling
+
+Given a density $g$ that is strictly positive on the supported domain of $h\times f$ , we can write $$\mathbb{E}_f[h(X)] = \int_{\chi}h(x)\frac{f(x)}{g(x)}g(x)dx = \mathbb{E}_g\left[\frac{h(X)f(X)}{g(X)}\right]$$ 
+
+Instead of sampling from a pdf $f$ we will can sample from a pdf $g$. This *importance sampling fundamental identity* justifies the use of the estimator $$\widehat{\mathbb{E}_f[h(X)]} = \frac{1}{m}\sum_{j=1}^m\frac{h(X_j)f(X_j)}{g(X_j)}$$ based on a sample generated from $g$. 
