@@ -220,10 +220,10 @@ so the variance increases exponentially with our choice of $n$, flattening out t
 
 # Monte-Carlo Integration
 
-## Simple Monte Carlo Estimator
+## Simple Monte Carlo Integration
 
-We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. In this case the quantity we want to estimate is really the value of an integral $\theta = \int_{\chi}g(x)dx$. The connection between generic integrals and random variables is given by the definition of expectation of a transformed random variable.  Recall that if $X$ is a random variable with density $f(x)$, then the mathematical expectation of the transformed random variable $g(X)$ is $$ \mathbb{E}_f[g(X)] = \int_{\chi}g(x)f(x)dx$$ where $\chi$ is the support of the density $f$. A simple case occurs when integrating a function $g(x)$ over $[0,1]$ because we can use uniform random variables. $$\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx$$. We can then generate a random sample of uniforms $X_1 \dots X_m$ to get the monte-carlo estimate of $\theta$: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[g(X)]} =  \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)$$
-By the law of large numbers $$P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|<\epsilon \bigg) = 1$$. So we can expect that our estimate will approximate the true value of the integral given a large enough sample. Let's use this to estimate $$\theta = \int_0^1 e^{-x}dx$$ and compare the estimate with the exact value.
+We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. In this case the quantity we want to estimate is really the value of an integral $\theta = \int_{\chi}g(x)dx$. The connection between generic integrals and random variables is given by the definition of expectation of a transformed random variable.  Recall that if $X$ is a random variable with density $f(x)$, then the mathematical expectation of the transformed random variable $g(X)$ is $$ \mathbb{E}_f[g(X)] = \int_{\chi}g(x)f(x)dx$$ where $\chi$ is the support of the density $f$. A simple case occurs when integrating a function $g(x)$ over $[0,1]$ because we can choose $X \sim \text{Uniform}[0,1]$. $$\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx$$ We can then generate a random sample of uniforms $X_1 \dots X_m$ to get the monte-carlo estimate of $\theta$ using the sample mean: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[g(X)]} =  \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)$$
+By the law of large numbers, the sample mean converges to true expected value. $$P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|<\epsilon \bigg) = 1$$ So we can expect that our estimate will approximate $\theta$ given a large enough sample. Let's use this to estimate $$\theta = \int_0^1 e^{-x}dx$$ and compare the estimate with the exact value.
 
 ```{r}
 m <- 10000
@@ -244,8 +244,8 @@ Using this formula we calculate $SE(\widehat{\theta}_{10^5})$ = `r st_err` for t
 
 ## General Monte-Carlo Integration
 
-We need not limit ourselves to uniform random variables for our monte-carlo estimator. Suppose we want to estimate the quantity $\theta = \int_{\chi}g(x)dx$. We can look for a random variable $X$ that is supported on $\chi$ and easy to sample from. Then we define the transformation $h(X) = \frac{g(X)}{f(X)}$. Taking the expectation gives us$$
-\mathbb{E}_f[g(X)] = \int_{\chi}\frac{g(x)f(x)}{f(x)}dx = \int_{\chi}g(x)dx$$ We can get a monte-carlo estimate of $\theta$ using the sample mean: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[h(X)]}  = \frac{1}{m}\sum_{i=1}^m\frac{g(X_i)}{f(X_i)}$$
+We need not limit ourselves to uniform random variables for our monte-carlo estimator. Suppose we want to estimate the quantity $\theta = \int_{\chi}g(x)dx$. We can look for a random variable $X$ with pdf $f$ that is supported on $\chi$ and easy to sample from. Then we define the transformation $h(X) = \frac{g(X)}{f(X)}$. Taking the expectation gives us$$
+\mathbb{E}_f[h(X)] = \int_{\chi}\frac{g(x)f(x)}{f(x)}dx = \int_{\chi}g(x)dx$$ We can get a monte-carlo estimate of $\theta$ using the sample mean of random variables $X_1, \dots, X_m$ generated from $f$: $$\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[h(X)]}  = \frac{1}{m}\sum_{i=1}^m\frac{g(X_i)}{f(X_i)}$$
 Note that the example in (2.1) is special case where $f(X_i) = 1$ because we are using uniform random variables. In this example we will consider a function defined on an infinite domain, so we cannot choose any uniform pdf for our $f$. Consider $$\int_0^{\infty}\sin(x^2)e^{-x^2}dx$$ If we choose $X \sim \exp(\lambda = 1)$ then $f(x) = e^{-x}$ on $x\geq 0$ and $$h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}$$
  
  
@@ -259,7 +259,7 @@ estimate <- sum(h(sample))/m
 
 
 ```
-Our Monte Carlo estimate $\widehat{\theta}$ = `r estimate` approximates the true value determined by Mathematica:
+Our Monte Carlo estimate $\widehat{\theta}_{MC}$ = `r estimate` approximates the true value determined by Mathematica:
 
 
 $$\pmb{\text{}}\\
@@ -270,3 +270,118 @@ $$\pmb{\text{}}\\
 Given a density $g$ that is strictly positive on the supported domain of $h\times f$ , we can write $$\mathbb{E}_f[h(X)] = \int_{\chi}h(x)\frac{f(x)}{g(x)}g(x)dx = \mathbb{E}_g\left[\frac{h(X)f(X)}{g(X)}\right]$$ 
 
 Instead of sampling from a pdf $f$ we will can sample from a pdf $g$. This *importance sampling fundamental identity* justifies the use of the estimator $$\widehat{\mathbb{E}_f[h(X)]} = \frac{1}{m}\sum_{j=1}^m\frac{h(X_j)f(X_j)}{g(X_j)}$$ based on a sample generated from $g$. 
+
+# Numerical Algorithms
+
+##EM algorithm: Faking data with Rick and Morty
+
+Rick and Morty have just returned from an off-world adventure on alien exoplanet DW7449 where they were retreiving slime samples from Type III Lazy Slug, a possible candidate for a new flavor of Sechuan Sticky Sauce. Two important flavor variables they need to measure are the slime's schleeb and its glubis which are known to be normally distributed. While taking measurements in Rick's workshop, Morty slipped on a slime patch crashing into the samples, corrupting the data before they could finish recording the glubis. Fortunately, Rick had already predicted that a typical Morty-related disaster would occur, and had preprogrammed an EM algorithm to rescue the lost data. Let's investigate what he did.  
+
+
+---
+
+
+```{r message=FALSE}
+library(ggthemes)
+library(MASS)
+
+set.seed(3)
+n <- 100     #sample size
+d <- 2       #dimension
+mu <- c(1,14) #vector of means
+SIGMA <- matrix(c(12,3,3,6), ncol = 2, byrow = TRUE)
+
+slime_data <- data.frame(mvrnorm(n, mu, Sigma = SIGMA))
+
+names(slime_data) = c("schleeb", "glubis")
+
+lost_data <- sample(1:n, size = n/2)
+
+slime_data[lost_data, 2] <- 0 #Set the lost data values to 0
+
+
+slime_plot <- ggplot(slime_data, aes(schleeb, glubis)) + 
+  geom_point(color = "yellow") + 
+  theme_solarized(light = FALSE) + 
+  theme(text = element_text(size=20, color = "green")) +
+  stat_smooth(method = "lm", color = "red", se = FALSE) + 
+  coord_cartesian(ylim = c(-1,20))
+
+
+```
+
+This first step in the EM algorithm is create an artificially complete data set by arbitrarily setting the missing glubis values to 0. We call this dataset $slime^{(0)}$ it is plotted below. We don't expect the regression line to be accurate. 
+
+```{r}
+slime_plot
+```
+
+
+
+We know the slime data comes from a bivariate normal distribution with parameters $\theta = (\mu_1, \mu_2, \sigma_1, \sigma_2, \rho)$. To get maximum likelihod estimates for $\mu_2, \sigma_2$, and $\rho$ we need to properly fill in the missing data for the glubis.  
+
+  To get one interation of the EM algorithm we can use maximum likelihood estimators to produce an estimate for $\widehat{\theta}^{(0)} = (\mu_1^{(0)}, \mu_2^{(0)}, \sigma_1^{(0)}, \sigma_2^{(0)}, \rho^{(0)})$ This is the M("Maximization Step")
+
+```{r}
+#construct a function that computes MLE's
+theta_hat_estimator <- function(schleeb = slime_data$schleeb, glubis = slime_data$glubis){
+mu_1 <- mean(schleeb)
+mu_2 <- mean(glubis)
+sigma_1 <- sd(schleeb)
+sigma_2 <- sd(glubis)
+rho <- cor(schleeb,glubis)
+return(c(mu_1, mu_2, sigma_1, sigma_2, rho))
+}
+```
+
+We can now impute the missing values using the formula for conditional expectation of a bivariate normal variable where $\theta = \widehat{\theta}^{(0)}$. This is the E"Expectation" step :   $$\mathbb{E}[x_{2i}|\widehat{\theta}^{(0)}] = \mu_2^{(0)} + \rho^{(0)}\frac{\sigma_2^{(0)}}{\sigma_1^{(0)}}(x_{1i} - \mu_1^{(0)}) $$ 
+```{r}
+#construct a function to update the slime data from slime_j -> slime_j+1
+impute_glubis <- function(x_1, mu_1, mu_2, sigma_1, sigma_2, rho){
+  mu_2 + rho*(sigma_2/sigma_1) * (x_1 - mu_1)
+}
+
+```
+
+The E and M steps are repeated giving a new dataset $slime^{(j)}$ at the $j^{th}$ stage and updating the parameter estimate $\widehat{\theta}^{(j)}$ until reaching some convergence threshold $||\widehat{\theta}^{(j+1)} - \widehat{\theta}^{(j)}|| < \epsilon$.
+
+```{r}
+#Run the EM algorithm
+epsilon <- .000005 # convergence threshold
+
+theta_hat_0 <- rep(0,5)  #initialize temp variable
+theta_hat_1 <- theta_hat_estimator(slime_data$schleeb, slime_data$glubis)
+var_path <- c(0,theta_hat_1)
+step = 1
+
+condition <- function(){
+  #convergence condition
+  sqrt(sum((theta_hat_1 - theta_hat_0)^2)) > epsilon
+}
+
+while(condition()) {
+  #EM algorithm
+ 
+    slime_data[lost_data, 2] <- impute_glubis(slime_data[lost_data, 1], theta_hat_1[1], theta_hat_1[2], theta_hat_1[3], theta_hat_1[4], theta_hat_1[5])
+  
+  theta_hat_0 = theta_hat_1
+  
+  theta_hat_1 = theta_hat_estimator(slime_data$schleeb, slime_data$glubis)
+  
+  var_path = rbind(var_path, c(step, theta_hat_1))
+  
+  step = step + 1
+}
+
+knitr::kable(var_path, booktabs = F, align = c("c"), 
+             col.names =  c("step", "$\\mu_1$", "$\\mu_2$", "$\\sigma_1$", "$\\sigma_2$", "$\\rho$")
+             )
+```
+
+The last line in our table corresponds to the final estimates of our parameters. 
+
+```{r}
+slime_plot %+% slime_data
+```
+
+This is a plot of Rick's reconstructed data: $slime^{(22)}$. Notice how the imputed data points lie along the regression line- since they were computed using conditional expectation, this is to by design. 

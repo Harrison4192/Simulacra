@@ -9,3 +9,5 @@ dplyr
 stringr
 magrittr
 scales
+MASS
+ggthemes

@@ -225,10 +225,13 @@ $(document).ready(function () {
 <li><a href="#a-mixture-of-gammas"><span class="toc-section-number">1.5</span> A Mixture of Gammas</a></li>
 </ul></li>
 <li><a href="#monte-carlo-integration"><span class="toc-section-number">2</span> Monte-Carlo Integration</a><ul>
-<li><a href="#simple-monte-carlo-estimator"><span class="toc-section-number">2.1</span> Simple Monte Carlo Estimator</a></li>
+<li><a href="#simple-monte-carlo-integration"><span class="toc-section-number">2.1</span> Simple Monte Carlo Integration</a></li>
 <li><a href="#estimating-standard-error"><span class="toc-section-number">2.2</span> Estimating Standard Error</a></li>
 <li><a href="#general-monte-carlo-integration"><span class="toc-section-number">2.3</span> General Monte-Carlo Integration</a></li>
 <li><a href="#importance-sampling"><span class="toc-section-number">2.4</span> Importance Sampling</a></li>
+</ul></li>
+<li><a href="#numerical-algorithms"><span class="toc-section-number">3</span> Numerical Algorithms</a><ul>
+<li><a href="#em-algorithm-faking-data-with-rick-and-morty"><span class="toc-section-number">3.1</span> EM algorithm: Faking data with Rick and Morty</a></li>
 </ul></li>
 </ul>
 </div>
@@ -466,9 +469,9 @@ ggplot(data = df, aes(x = data)) +
 </div>
 <div id="monte-carlo-integration" class="section level1">
 <h1><span class="header-section-number">2</span> Monte-Carlo Integration</h1>
-<div id="simple-monte-carlo-estimator" class="section level2">
-<h2><span class="header-section-number">2.1</span> Simple Monte Carlo Estimator</h2>
-<p>We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. In this case the quantity we want to estimate is really the value of an integral <span class="math inline">\(\theta = \int_{\chi}g(x)dx\)</span>. The connection between generic integrals and random variables is given by the definition of expectation of a transformed random variable. Recall that if <span class="math inline">\(X\)</span> is a random variable with density <span class="math inline">\(f(x)\)</span>, then the mathematical expectation of the transformed random variable <span class="math inline">\(g(X)\)</span> is <span class="math display">\[ \mathbb{E}_f[g(X)] = \int_{\chi}g(x)f(x)dx\]</span> where <span class="math inline">\(\chi\)</span> is the support of the density <span class="math inline">\(f\)</span>. A simple case occurs when integrating a function <span class="math inline">\(g(x)\)</span> over <span class="math inline">\([0,1]\)</span> because we can use uniform random variables. <span class="math display">\[\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx\]</span>. We can then generate a random sample of uniforms <span class="math inline">\(X_1 \dots X_m\)</span> to get the monte-carlo estimate of <span class="math inline">\(\theta\)</span>: <span class="math display">\[\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[g(X)]} =  \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)\]</span> By the law of large numbers <span class="math display">\[P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|&lt;\epsilon \bigg) = 1\]</span>. So we can expect that our estimate will approximate the true value of the integral given a large enough sample. Let’s use this to estimate <span class="math display">\[\theta = \int_0^1 e^{-x}dx\]</span> and compare the estimate with the exact value.</p>
+<div id="simple-monte-carlo-integration" class="section level2">
+<h2><span class="header-section-number">2.1</span> Simple Monte Carlo Integration</h2>
+<p>We can use random number generation to estimate the integral of a function that would be difficult to solve analytically. In this case the quantity we want to estimate is really the value of an integral <span class="math inline">\(\theta = \int_{\chi}g(x)dx\)</span>. The connection between generic integrals and random variables is given by the definition of expectation of a transformed random variable. Recall that if <span class="math inline">\(X\)</span> is a random variable with density <span class="math inline">\(f(x)\)</span>, then the mathematical expectation of the transformed random variable <span class="math inline">\(g(X)\)</span> is <span class="math display">\[ \mathbb{E}_f[g(X)] = \int_{\chi}g(x)f(x)dx\]</span> where <span class="math inline">\(\chi\)</span> is the support of the density <span class="math inline">\(f\)</span>. A simple case occurs when integrating a function <span class="math inline">\(g(x)\)</span> over <span class="math inline">\([0,1]\)</span> because we can choose <span class="math inline">\(X \sim \text{Uniform}[0,1]\)</span>. <span class="math display">\[\theta = E[g(X)] = \int_0^1g(x)(1)dx = \int_0^1g(x)dx\]</span> We can then generate a random sample of uniforms <span class="math inline">\(X_1 \dots X_m\)</span> to get the monte-carlo estimate of <span class="math inline">\(\theta\)</span> using the sample mean: <span class="math display">\[\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[g(X)]} =  \overline{g_m(X)} = \frac{1}{m}\sum_{i=1}^mg(X_i)\]</span> By the law of large numbers, the sample mean converges to true expected value. <span class="math display">\[P\bigg(\lim_{m\rightarrow \infty}\left|\overline{g_m(X)} - E[g(X)]\right|&lt;\epsilon \bigg) = 1\]</span> So we can expect that our estimate will approximate <span class="math inline">\(\theta\)</span> given a large enough sample. Let’s use this to estimate <span class="math display">\[\theta = \int_0^1 e^{-x}dx\]</span> and compare the estimate with the exact value.</p>
 <pre class="r"><code>m &lt;- 10000
 x &lt;- runif(m)
 theta.hat &lt;- round(mean(exp(-x)),6)
@@ -483,15 +486,15 @@ st_err &lt;- format((1/m)*(sum(exp(-x)-theta.hat)^2)^(1/2), digits = 3)</code></
 </div>
 <div id="general-monte-carlo-integration" class="section level2">
 <h2><span class="header-section-number">2.3</span> General Monte-Carlo Integration</h2>
-<p>We need not limit ourselves to uniform random variables for our monte-carlo estimator. Suppose we want to estimate the quantity <span class="math inline">\(\theta = \int_{\chi}g(x)dx\)</span>. We can look for a random variable <span class="math inline">\(X\)</span> that is supported on <span class="math inline">\(\chi\)</span> and easy to sample from. Then we define the transformation <span class="math inline">\(h(X) = \frac{g(X)}{f(X)}\)</span>. Taking the expectation gives us<span class="math display">\[
-\mathbb{E}_f[g(X)] = \int_{\chi}\frac{g(x)f(x)}{f(x)}dx = \int_{\chi}g(x)dx\]</span> We can get a monte-carlo estimate of <span class="math inline">\(\theta\)</span> using the sample mean: <span class="math display">\[\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[h(X)]}  = \frac{1}{m}\sum_{i=1}^m\frac{g(X_i)}{f(X_i)}\]</span> Note that the example in (2.1) is special case where <span class="math inline">\(f(X_i) = 1\)</span> because we are using uniform random variables. In this example we will consider a function defined on an infinite domain, so we cannot choose any uniform pdf for our <span class="math inline">\(f\)</span>. Consider <span class="math display">\[\int_0^{\infty}\sin(x^2)e^{-x^2}dx\]</span> If we choose <span class="math inline">\(X \sim \exp(\lambda = 1)\)</span> then <span class="math inline">\(f(x) = e^{-x}\)</span> on <span class="math inline">\(x\geq 0\)</span> and <span class="math display">\[h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}\]</span></p>
+<p>We need not limit ourselves to uniform random variables for our monte-carlo estimator. Suppose we want to estimate the quantity <span class="math inline">\(\theta = \int_{\chi}g(x)dx\)</span>. We can look for a random variable <span class="math inline">\(X\)</span> with pdf <span class="math inline">\(f\)</span> that is supported on <span class="math inline">\(\chi\)</span> and easy to sample from. Then we define the transformation <span class="math inline">\(h(X) = \frac{g(X)}{f(X)}\)</span>. Taking the expectation gives us<span class="math display">\[
+\mathbb{E}_f[h(X)] = \int_{\chi}\frac{g(x)f(x)}{f(x)}dx = \int_{\chi}g(x)dx\]</span> We can get a monte-carlo estimate of <span class="math inline">\(\theta\)</span> using the sample mean of random variables <span class="math inline">\(X_1, \dots, X_m\)</span> generated from <span class="math inline">\(f\)</span>: <span class="math display">\[\widehat{\theta}_{MC} = \widehat{\mathbb{E}_f[h(X)]}  = \frac{1}{m}\sum_{i=1}^m\frac{g(X_i)}{f(X_i)}\]</span> Note that the example in (2.1) is special case where <span class="math inline">\(f(X_i) = 1\)</span> because we are using uniform random variables. In this example we will consider a function defined on an infinite domain, so we cannot choose any uniform pdf for our <span class="math inline">\(f\)</span>. Consider <span class="math display">\[\int_0^{\infty}\sin(x^2)e^{-x^2}dx\]</span> If we choose <span class="math inline">\(X \sim \exp(\lambda = 1)\)</span> then <span class="math inline">\(f(x) = e^{-x}\)</span> on <span class="math inline">\(x\geq 0\)</span> and <span class="math display">\[h(x) = \frac{\sin(x^2)e^{-x^2}}{e^{-x}} = \sin(x^2)e^{-x^2 + x}\]</span></p>
 <pre class="r"><code>m &lt;- 10^5
 sample &lt;- rexp(m, rate = 1)
 h &lt;- function(x){
   sin(x^2)*exp(-x^2 + x)
 }
 estimate &lt;- sum(h(sample))/m</code></pre>
-<p>Our Monte Carlo estimate <span class="math inline">\(\widehat{\theta}\)</span> = 0.2853661 approximates the true value determined by Mathematica:</p>
+<p>Our Monte Carlo estimate <span class="math inline">\(\widehat{\theta}_{MC}\)</span> = 0.2853661 approximates the true value determined by Mathematica:</p>
 <p><span class="math display">\[\pmb{\text{}}\\
 \pmb{\text{Integrate}\left[\text{Sin}[x{}^{\wedge}2]*e^{-x^2}, \{x, 0 , \text{Infinity}\}\right]} = \frac{\sqrt{\pi } \ \text{Sin}\left[\frac{\pi }{8}\right]}{2\ 2^{1/4}} = 0.285185\]</span></p>
 </div>
@@ -499,6 +502,314 @@ estimate &lt;- sum(h(sample))/m</code></pre>
 <h2><span class="header-section-number">2.4</span> Importance Sampling</h2>
 <p>Given a density <span class="math inline">\(g\)</span> that is strictly positive on the supported domain of <span class="math inline">\(h\times f\)</span> , we can write <span class="math display">\[\mathbb{E}_f[h(X)] = \int_{\chi}h(x)\frac{f(x)}{g(x)}g(x)dx = \mathbb{E}_g\left[\frac{h(X)f(X)}{g(X)}\right]\]</span></p>
 <p>Instead of sampling from a pdf <span class="math inline">\(f\)</span> we will can sample from a pdf <span class="math inline">\(g\)</span>. This <em>importance sampling fundamental identity</em> justifies the use of the estimator <span class="math display">\[\widehat{\mathbb{E}_f[h(X)]} = \frac{1}{m}\sum_{j=1}^m\frac{h(X_j)f(X_j)}{g(X_j)}\]</span> based on a sample generated from <span class="math inline">\(g\)</span>.</p>
+</div>
+</div>
+<div id="numerical-algorithms" class="section level1">
+<h1><span class="header-section-number">3</span> Numerical Algorithms</h1>
+<div id="em-algorithm-faking-data-with-rick-and-morty" class="section level2">
+<h2><span class="header-section-number">3.1</span> EM algorithm: Faking data with Rick and Morty</h2>
+<p>Rick and Morty have just returned from an off-world adventure on alien exoplanet DW7449 where they were retreiving slime samples from Type III Lazy Slug, a possible candidate for a new flavor of Sechuan Sticky Sauce. Two important flavor variables they need to measure are the slime’s schleeb and its glubis which are known to be normally distributed. While taking measurements in Rick’s workshop, Morty slipped on a slime patch crashing into the samples, corrupting the data before they could finish recording the glubis. Fortunately, Rick had already predicted that a typical Morty-related disaster would occur, and had preprogrammed an EM algorithm to rescue the lost data. Let’s investigate what he did.</p>
+<hr />
+<pre class="r"><code>library(ggthemes)
+library(MASS)
+
+set.seed(3)
+n &lt;- 100     #sample size
+d &lt;- 2       #dimension
+mu &lt;- c(1,14) #vector of means
+SIGMA &lt;- matrix(c(12,3,3,6), ncol = 2, byrow = TRUE)
+
+slime_data &lt;- data.frame(mvrnorm(n, mu, Sigma = SIGMA))
+
+names(slime_data) = c(&quot;schleeb&quot;, &quot;glubis&quot;)
+
+lost_data &lt;- sample(1:n, size = n/2)
+
+slime_data[lost_data, 2] &lt;- 0 #Set the lost data values to 0
+
+
+slime_plot &lt;- ggplot(slime_data, aes(schleeb, glubis)) + 
+  geom_point(color = &quot;yellow&quot;) + 
+  theme_solarized(light = FALSE) + 
+  theme(text = element_text(size=20, color = &quot;green&quot;)) +
+  stat_smooth(method = &quot;lm&quot;, color = &quot;red&quot;, se = FALSE) + 
+  coord_cartesian(ylim = c(-1,20))</code></pre>
+<p>This first step in the EM algorithm is create an artificially complete data set by arbitrarily setting the missing glubis values to 0. We call this dataset <span class="math inline">\(slime^{(0)}\)</span> it is plotted below. We don’t expect the regression line to be accurate.</p>
+<pre class="r"><code>slime_plot</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+<p>We know the slime data comes from a bivariate normal distribution with parameters <span class="math inline">\(\theta = (\mu_1, \mu_2, \sigma_1, \sigma_2, \rho)\)</span>. To get maximum likelihod estimates for <span class="math inline">\(\mu_2, \sigma_2\)</span>, and <span class="math inline">\(\rho\)</span> we need to properly fill in the missing data for the glubis.</p>
+<p>To get one interation of the EM algorithm we can use maximum likelihood estimators to produce an estimate for <span class="math inline">\(\widehat{\theta}^{(0)} = (\mu_1^{(0)}, \mu_2^{(0)}, \sigma_1^{(0)}, \sigma_2^{(0)}, \rho^{(0)})\)</span> This is the M(“Maximization Step”)</p>
+<pre class="r"><code>#construct a function that computes MLE&#39;s
+theta_hat_estimator &lt;- function(schleeb = slime_data$schleeb, glubis = slime_data$glubis){
+mu_1 &lt;- mean(schleeb)
+mu_2 &lt;- mean(glubis)
+sigma_1 &lt;- sd(schleeb)
+sigma_2 &lt;- sd(glubis)
+rho &lt;- cor(schleeb,glubis)
+return(c(mu_1, mu_2, sigma_1, sigma_2, rho))
+}</code></pre>
+<p>We can now impute the missing values using the formula for conditional expectation of a bivariate normal variable where <span class="math inline">\(\theta = \widehat{\theta}^{(0)}\)</span>. This is the E“Expectation” step : <span class="math display">\[\mathbb{E}[x_{2i}|\widehat{\theta}^{(0)}] = \mu_2^{(0)} + \rho^{(0)}\frac{\sigma_2^{(0)}}{\sigma_1^{(0)}}(x_{1i} - \mu_1^{(0)}) \]</span></p>
+<pre class="r"><code>#construct a function to update the slime data from slime_j -&gt; slime_j+1
+impute_glubis &lt;- function(x_1, mu_1, mu_2, sigma_1, sigma_2, rho){
+  mu_2 + rho*(sigma_2/sigma_1) * (x_1 - mu_1)
+}</code></pre>
+<p>The E and M steps are repeated giving a new dataset <span class="math inline">\(slime^{(j)}\)</span> at the <span class="math inline">\(j^{th}\)</span> stage and updating the parameter estimate <span class="math inline">\(\widehat{\theta}^{(j)}\)</span> until reaching some convergence threshold <span class="math inline">\(||\widehat{\theta}^{(j+1)} - \widehat{\theta}^{(j)}|| &lt; \epsilon\)</span>.</p>
+<pre class="r"><code>#Run the EM algorithm
+epsilon &lt;- .000005 # convergence threshold
+
+theta_hat_0 &lt;- rep(0,5)  #initialize temp variable
+theta_hat_1 &lt;- theta_hat_estimator(slime_data$schleeb, slime_data$glubis)
+var_path &lt;- c(0,theta_hat_1)
+step = 1
+
+condition &lt;- function(){
+  #convergence condition
+  sqrt(sum((theta_hat_1 - theta_hat_0)^2)) &gt; epsilon
+}
+
+while(condition()) {
+  #EM algorithm
+ 
+    slime_data[lost_data, 2] &lt;- impute_glubis(slime_data[lost_data, 1], theta_hat_1[1], theta_hat_1[2], theta_hat_1[3], theta_hat_1[4], theta_hat_1[5])
+  
+  theta_hat_0 = theta_hat_1
+  
+  theta_hat_1 = theta_hat_estimator(slime_data$schleeb, slime_data$glubis)
+  
+  var_path = rbind(var_path, c(step, theta_hat_1))
+  
+  step = step + 1
+}
+
+knitr::kable(var_path, booktabs = F, align = c(&quot;c&quot;), 
+             col.names =  c(&quot;step&quot;, &quot;$\\mu_1$&quot;, &quot;$\\mu_2$&quot;, &quot;$\\sigma_1$&quot;, &quot;$\\sigma_2$&quot;, &quot;$\\rho$&quot;)
+             )</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="center">step</th>
+<th align="center"><span class="math inline">\(\mu_1\)</span></th>
+<th align="center"><span class="math inline">\(\mu_2\)</span></th>
+<th align="center"><span class="math inline">\(\sigma_1\)</span></th>
+<th align="center"><span class="math inline">\(\sigma_2\)</span></th>
+<th align="center"><span class="math inline">\(\rho\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>var_path</td>
+<td align="center">0</td>
+<td align="center">0.9787029</td>
+<td align="center">6.987215</td>
+<td align="center">3.081482</td>
+<td align="center">7.259808</td>
+<td align="center">0.1191515</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">1</td>
+<td align="center">0.9787029</td>
+<td align="center">10.440005</td>
+<td align="center">3.081482</td>
+<td align="center">4.038984</td>
+<td align="center">0.2198468</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">2</td>
+<td align="center">0.9787029</td>
+<td align="center">12.165318</td>
+<td align="center">3.081482</td>
+<td align="center">2.649032</td>
+<td align="center">0.2766403</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">3</td>
+<td align="center">0.9787029</td>
+<td align="center">13.035294</td>
+<td align="center">3.081482</td>
+<td align="center">2.121314</td>
+<td align="center">0.2766010</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">4</td>
+<td align="center">0.9787029</td>
+<td align="center">13.477175</td>
+<td align="center">3.081482</td>
+<td align="center">1.944324</td>
+<td align="center">0.2495371</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">5</td>
+<td align="center">0.9787029</td>
+<td align="center">13.702908</td>
+<td align="center">3.081482</td>
+<td align="center">1.887004</td>
+<td align="center">0.2238040</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">6</td>
+<td align="center">0.9787029</td>
+<td align="center">13.818741</td>
+<td align="center">3.081482</td>
+<td align="center">1.867507</td>
+<td align="center">0.2065273</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">7</td>
+<td align="center">0.9787029</td>
+<td align="center">13.878386</td>
+<td align="center">3.081482</td>
+<td align="center">1.860207</td>
+<td align="center">0.1962670</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">8</td>
+<td align="center">0.9787029</td>
+<td align="center">13.909180</td>
+<td align="center">3.081482</td>
+<td align="center">1.857164</td>
+<td align="center">0.1904945</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">9</td>
+<td align="center">0.9787029</td>
+<td align="center">13.925111</td>
+<td align="center">3.081482</td>
+<td align="center">1.855776</td>
+<td align="center">0.1873364</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">10</td>
+<td align="center">0.9787029</td>
+<td align="center">13.933366</td>
+<td align="center">3.081482</td>
+<td align="center">1.855101</td>
+<td align="center">0.1856364</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">11</td>
+<td align="center">0.9787029</td>
+<td align="center">13.937648</td>
+<td align="center">3.081482</td>
+<td align="center">1.854762</td>
+<td align="center">0.1847306</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">12</td>
+<td align="center">0.9787029</td>
+<td align="center">13.939871</td>
+<td align="center">3.081482</td>
+<td align="center">1.854587</td>
+<td align="center">0.1842511</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">13</td>
+<td align="center">0.9787029</td>
+<td align="center">13.941026</td>
+<td align="center">3.081482</td>
+<td align="center">1.854497</td>
+<td align="center">0.1839985</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">14</td>
+<td align="center">0.9787029</td>
+<td align="center">13.941626</td>
+<td align="center">3.081482</td>
+<td align="center">1.854449</td>
+<td align="center">0.1838658</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">15</td>
+<td align="center">0.9787029</td>
+<td align="center">13.941939</td>
+<td align="center">3.081482</td>
+<td align="center">1.854425</td>
+<td align="center">0.1837963</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">16</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942101</td>
+<td align="center">3.081482</td>
+<td align="center">1.854412</td>
+<td align="center">0.1837600</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">17</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942186</td>
+<td align="center">3.081482</td>
+<td align="center">1.854405</td>
+<td align="center">0.1837410</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">18</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942229</td>
+<td align="center">3.081482</td>
+<td align="center">1.854402</td>
+<td align="center">0.1837310</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">19</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942252</td>
+<td align="center">3.081482</td>
+<td align="center">1.854400</td>
+<td align="center">0.1837259</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">20</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942264</td>
+<td align="center">3.081482</td>
+<td align="center">1.854399</td>
+<td align="center">0.1837232</td>
+</tr>
+<tr class="even">
+<td></td>
+<td align="center">21</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942270</td>
+<td align="center">3.081482</td>
+<td align="center">1.854398</td>
+<td align="center">0.1837218</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td align="center">22</td>
+<td align="center">0.9787029</td>
+<td align="center">13.942274</td>
+<td align="center">3.081482</td>
+<td align="center">1.854398</td>
+<td align="center">0.1837210</td>
+</tr>
+</tbody>
+</table>
+<p>The last line in our table corresponds to the final estimates of our parameters.</p>
+<pre class="r"><code>slime_plot %+% slime_data</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
+<p>This is a plot of Rick’s reconstructed data: <span class="math inline">\(slime^{(22)}\)</span>. Notice how the imputed data points lie along the regression line- since they were computed using conditional expectation, this is to by design.</p>
 </div>
 </div>
 
