@@ -18,4 +18,4 @@ output:
 
 ― Jean Baudrillard, Simulacra and Simulation
 
-<img src="solemnsimulacrum.jpg" style="width:304px;height:228px">
+<img src="/Users/Harrison/Desktop/projects/Github/Simulacra/simulations_files/figure-html/solemnsimulacrum.jpg" style="width:304px;height:228px">
