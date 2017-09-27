@@ -233,6 +233,9 @@ $(document).ready(function () {
 <li><a href="#numerical-algorithms"><span class="toc-section-number">3</span> Numerical Algorithms</a><ul>
 <li><a href="#em-algorithm-faking-data-with-rick-and-morty"><span class="toc-section-number">3.1</span> EM algorithm: Faking data with Rick and Morty</a></li>
 </ul></li>
+<li><a href="#markov-chain-monte-carlo"><span class="toc-section-number">4</span> Markov Chain Monte Carlo</a><ul>
+<li><a href="#random-walk-sampler"><span class="toc-section-number">4.1</span> Random Walk Sampler</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -810,6 +813,60 @@ knitr::kable(var_path, booktabs = F, align = c(&quot;c&quot;),
 <pre class="r"><code>slime_plot %+% slime_data</code></pre>
 <p><img src="simulations_files/figure-html/unnamed-chunk-19-1.png" width="672" /></p>
 <p>This is a plot of Rick’s reconstructed data: <span class="math inline">\(slime^{(22)}\)</span>. Notice how the imputed data points lie along the regression line- since they were computed using conditional expectation, this is to by design.</p>
+</div>
+</div>
+<div id="markov-chain-monte-carlo" class="section level1">
+<h1><span class="header-section-number">4</span> Markov Chain Monte Carlo</h1>
+<div id="random-walk-sampler" class="section level2">
+<h2><span class="header-section-number">4.1</span> Random Walk Sampler</h2>
+<p>Here we use a random walk to generate a sample from a bivariate normal distribution. Though we already have ways to generate random multivaraite normals, this algorithm can be applied to sample from any exponential kernel.</p>
+<pre class="r"><code>library(mvtnorm)
+
+N &lt;- 10^5
+
+chain &lt;- matrix(rep(0,N*2), nrow = N)
+
+chain[1,] &lt;- c(2,2)
+
+
+f &lt;- function(x){ dmvnorm(x)}
+
+
+acceptance &lt;- function(y, x){
+  min(f(y)/f(x) , 1)
+}
+
+
+biv_rnorm &lt;- function(){
+  rnorm(n = 2, sd = 3)
+}
+
+for(t in 1:(N-1)){
+
+X_t &lt;- chain[t,]
+
+Y &lt;- X_t + 2 * biv_rnorm()
+
+alpha &lt;- acceptance(Y, X_t)
+
+u &lt;- runif(n = 1)
+
+
+if(u &lt; alpha){
+  chain[t+1,] &lt;- Y
+}
+else{
+  chain[t+1,] &lt;- X_t
+}
+
+
+}
+
+hist(chain[,1])</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<pre class="r"><code>hist(chain[,2])</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-20-2.png" width="672" /></p>
+<p>The histograms show the marginal distributions are standard normal, as epected.</p>
 </div>
 </div>
 

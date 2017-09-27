@@ -385,3 +385,59 @@ slime_plot %+% slime_data
 ```
 
 This is a plot of Rick's reconstructed data: $slime^{(22)}$. Notice how the imputed data points lie along the regression line- since they were computed using conditional expectation, this is to by design. 
+
+#Markov Chain Monte Carlo
+
+##Random Walk Sampler
+
+Here we use a random walk to generate a sample from a bivariate normal distribution. Though we already have ways to generate random multivaraite normals, this algorithm can be applied to sample from any exponential kernel. 
+
+```{r}
+library(mvtnorm)
+
+N <- 10^5
+
+chain <- matrix(rep(0,N*2), nrow = N)
+
+chain[1,] <- c(2,2)
+
+
+f <- function(x){ dmvnorm(x)}
+
+
+acceptance <- function(y, x){
+  min(f(y)/f(x) , 1)
+}
+
+
+biv_rnorm <- function(){
+  rnorm(n = 2, sd = 3)
+}
+
+for(t in 1:(N-1)){
+
+X_t <- chain[t,]
+
+Y <- X_t + 2 * biv_rnorm()
+
+alpha <- acceptance(Y, X_t)
+
+u <- runif(n = 1)
+
+
+if(u < alpha){
+  chain[t+1,] <- Y
+}
+else{
+  chain[t+1,] <- X_t
+}
+
+
+}
+
+hist(chain[,1])
+hist(chain[,2])
+
+```
+
+The histograms show the marginal distributions are standard normal, as epected. 
