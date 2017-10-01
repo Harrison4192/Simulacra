@@ -9,6 +9,8 @@ navbar:
       href: about.html
     - text: "simulations"
       href: simulations.html
+    - text: "GLM"
+      href: GLM.html
     - text: "certificates"
       href: certificates.html
     - text: "Baire Space"

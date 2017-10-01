@@ -1,0 +1,139 @@
+---
+title: <p style="color:purple;">General Linear Models</p>
+author:
+  - "Harrison Tietze"
+output: 
+  html_document:
+    toc: yes
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(cache = TRUE)
+library(tidyverse)
+```
+
+#Correlation Coefficients 
+
+##Pearson's $r$, Spearman's $r_s$, Kendall's $\tau$ 
+
+-**Pearson's correlation coefficient** is a measure of linear correlation between two variables $X$ and $Y$. It has a value between +1 and −1, where 1 is total positive linear correlation, 0 is no linear correlation, and −1 is total negative linear correlation.  The formula when applied to a population is given by $$\rho_{X,Y} = \frac{cov(X,Y)}{\sigma_X\sigma_Y}$$ The sample Pearson's correlation coeffiecient $r$ can be calculated by plugging in estimates for the population parameters. $$r = \frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}\sqrt{\sum_{i=1}^n(y_i-\overline{y})^2}}$$
+This formula aids the interpretation that the correlation is positive when both the $x_i$ and $y_i$ values lie above their their respective mean and negative when they lie on opposite side of their respective mean. The stronger this tendency is, the larger the magnitude of the correlation coefficient. 
+
+-**Spearman's rank correlation coefficient** is defined as the Pearson correlation coefficient between the ranked variables and denoted $r_s$. To compute it on a sample of size $n$, first the raw scores $X_i,Y_i$ are transformed into their corresponding ranks in ascending order denoted $rgX_i,rgY_i$. In a bivariate sample,  each variable is ranked and the correlation is computed: $$r_s = \rho_{rg_xrg_Y}\frac{cov(rg_X,rg_Y)}{\sigma_{rg_x}\sigma_{rg_Y}}$$
+The advantage of $r_s$ is that it can assess non-linear monotonic relationships between two variables. It will have a value of 1 is one variable is a strictly monotonic function of the other. For example, the dataset $\{(1,1),(2,4),(3,8),(4,16)\}$ is exponentially related and has the property $rgX_i = rgY_i$. Identical values are usually each assigned fractional ranks equal to the average of their positions in the ascending order of the values. However, if all the ranks are distinct integers, there is the formula $$r_s =1-\frac{6\sum d_i^2}{n(n^2-1)}$$ where $d_i = rg(X_i) - rg(Y_i)$ is the difference in ranks of an observation. Note that an important advantage of the Spearman Correlation is that it is less sensitive to outliers because Spearman's rho limits the outlier to the value of its rank.
+
+-**Kendall's tau coefficient**
+
+Let $(x_i,y_i)$ and $(x_j,y_j)$ be two distinct observations in a bivariate sample. Then the observations are *concordant* if the ranks for both elements agree: $y_i<y_j$ or if $x_i>x_j$ and $y_i>y_j$. The observations are *discordant* if the ranks disagree: $x_i<x_j$ and $y_i>y_j$ or if $x_i>x_j$ and $y_i<y_j$. The pair of observations is neither if the ranks are equal. The Kendall $\tau$ coefficient is defined as $$\tau = \frac{\text{(number of concordant pairs) - (number of discordant pairs)}}{n(n-1)/2}$$
+
+Where the denominator is $\binom{n}{2}$: the number of pairs of observations in the sample, so $-1\leq \tau \leq 1$. An advantage of Kendall’s tau is that its interpretation in terms of the probabilities of observing the agreeable (concordant) and non-agreeable (discordant) pairs is very direct.Though in most of the situations, the interpretations of Kendall’s tau and Spearman’s rank correlation coefficient are very similar and thus invariably lead to the same inferences.
+Spearman’s rank correlation coefficient is the more widely used rank correlation coefficient. Kendall's Tau may be less sensitive to error and give smaller values than Spearman's rho correlation, but the required number of computations for its calcualation can make implementation inefficient. 
+
+References:
+
+https://en.wikipedia.org/wiki/Pearson_correlation_coefficient
+https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient
+https://statistics.laerd.com/statistical-guides/spearmans-rank-order-correlation-statistical-guide.php
+https://en.wikipedia.org/wiki/Ranking#Ranking_in_statistics
+https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient
+http://www.statisticssolutions.com/kendalls-tau-and-spearmans-rank-correlation-coefficient/
+
+---
+
+##Comparing $r$, $r_s$, and $\tau$
+
+<img src="hw1img.png">
+
+```{r}
+
+#organize observations into data frame
+df <- data.frame(
+  x_1 = rep(c(0,1,10), times = 2),
+  x_2 = rep(c(0,1), each = 3),
+  p = c(.1, .4, .2, .1, .1, .1)
+)
+
+
+n = 10^5
+df.rows = nrow(df)
+
+#sample from the row indices of the data frame
+samples <- sample(1:df.rows, size = n, replace = TRUE, prob = df$p)
+
+#create your sample by subsetting the data frame
+my_sample <- df[samples,1:2]
+
+knitr::kable(table(my_sample), caption = "Frequency table for sample from discrete bivariate")
+
+
+
+get_cor <- function(my_method){
+#function to get the 3 types of correlation coefficients
+cor(my_sample$x_2,my_sample$x_1, method = my_method)
+}
+
+corrs <- c(pearson = get_cor("pearson"), spearman = get_cor("spearman"), kendall = get_cor("kendall"))
+
+knitr::kable(data.frame(corrs))
+
+```
+
+
+
+```{r}
+sample_mean <- function(x){
+  weighted.mean(x, w = df$p)
+}
+
+df$rank_x1 <- rep(c(1,2,3),2)
+df$rank_x2 <-  rep(c(1,2),each = 3)
+
+sample_list <- list(x1_mean = df$x_1, x2_mean = df$x_2, rank_x1_mean = rep(c(1,2,3),2), rank_x2_mean = rep(c(1,2),each = 3))
+
+means <- lapply(sample_list, sample_mean)
+
+rank_df <- df %>% mutate(
+  x1_star = x_1 - means[[1]],
+  x2_star = x_2 - means[[2]],
+  r1_star = rank_x1 - means[[3]],
+  r2_star = rank_x2 - means[[4]],
+  x_cov = x1_star * x2_star,
+  r_cov = r1_star * r2_star
+) %>%
+ select(x_1, x_2, x_cov, r_cov, p)
+
+
+```
+---
+
+##$r$ is positive but $r_s$ and $\tau$ are negative
+
+**Pearson's correlation is positive because the outlier inflates the positive contribution to the covariance.**
+
+To invstigate the covariance of the raw and the ranked data, observe this dataframe with the following transformed variables: x_cov = $(x_{i1}-\overline{x_1})(x_{i2}-\overline{x_2})$  and r_cov = $(rgx_{i1}-\overline{rgx_1})(rgx_{i2}-\overline{rgx_2})$ 
+
+```{r echo = FALSE}
+knitr::kable(rank_df)
+```
+
+
+Because the distribution of x_1 is skewed to the right, its mean is rather large. We can observe that the mode of the distribution x = (1,0), contributes positively to the covariance of the two variables. In the raw data, this contribution is rather high: an additional .75 for each (1,0) in our sample. Similarly the outlier (10,1) contributes  4.55 to the covariance, a large amount. However, the ranking the variables lowers the mean and reduces the effect of the outlier on the covariance. The mode (1,0) now has a negligble contribution of .03, and the contribution of largest magnitude isn't (10,1), but instead (0,1) with a negative contribution of -.77. This helps explain the negative value of Spearman's correlation. It is easy to see Kendall's correlation is negative because of the overwhelming number of discordant pairs of observations. 
+
+---
+
+## Construct a distribution where $r_s$ is negative but $\tau$ is positive
+
+Notice a key difference between Kendall's $\tau$ and Spearman's $\rho$ is that the former is not sensitive to the distance between rank swaps, just their frequency. This can be illustrated using a discrete distribution of distinct integers that allows us to use the shortcut formula for $r_s$. 
+
+
+```{r}
+x1 <- 1:80
+x2 <- c(80:70,11:69,10:1)
+cor(x1, x2, method = "spearman")
+cor(x1, x2, method = "kendall")
+plot(x1,x2)
+```
+
+We can see that Spearman's correlation is negative because of the weight of $\sum d_i^2 = (80-1)^2 + (79-2)^2 + ...$ is very large. Kendall's tau is not sensitive to this fact, and shows a positive correlation because of the many concordant pairs in the middle of the distribution. 

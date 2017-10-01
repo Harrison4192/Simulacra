@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Harrison Tietze" />
+
+
+<title></title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Harrison's website</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About Me</a>
+</li>
+<li>
+  <a href="simulations.html">simulations</a>
+</li>
+<li>
+  <a href="GLM.html">GLM</a>
+</li>
+<li>
+  <a href="certificates.html">certificates</a>
+</li>
+<li>
+  <a href="topology.html">Baire Space</a>
+</li>
+<li>
+  <a href="KDE.html">KDE</a>
+</li>
+<li>
+  <a href="https://docs.google.com/document/d/e/2PACX-1vTnpiuuxd0-ia3SMAk1SGusAyLyvwPN-wsl_dQCIC6Nglj0WgyTne0nYS1JISZZI6H-ym631b9B0kr0/pub">Novella</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore"><p style="color:purple;">
+General Linear Models
+</p></h1>
+<h4 class="author"><em>Harrison Tietze</em></h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#correlation-coefficients"><span class="toc-section-number">1</span> Correlation Coefficients</a><ul>
+<li><a href="#pearsons-r-spearmans-r_s-kendalls-tau"><span class="toc-section-number">1.1</span> Pearson’s <span class="math inline">\(r\)</span>, Spearman’s <span class="math inline">\(r_s\)</span>, Kendall’s <span class="math inline">\(\tau\)</span></a></li>
+<li><a href="#comparing-r-r_s-and-tau"><span class="toc-section-number">1.2</span> Comparing <span class="math inline">\(r\)</span>, <span class="math inline">\(r_s\)</span>, and <span class="math inline">\(\tau\)</span></a></li>
+<li><a href="#r-is-positive-but-r_s-and-tau-are-negative"><span class="toc-section-number">1.3</span> <span class="math inline">\(r\)</span> is positive but <span class="math inline">\(r_s\)</span> and <span class="math inline">\(\tau\)</span> are negative</a></li>
+<li><a href="#construct-a-distribution-where-r_s-is-negative-but-tau-is-positive"><span class="toc-section-number">1.4</span> Construct a distribution where <span class="math inline">\(r_s\)</span> is negative but <span class="math inline">\(\tau\)</span> is positive</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="correlation-coefficients" class="section level1">
+<h1><span class="header-section-number">1</span> Correlation Coefficients</h1>
+<div id="pearsons-r-spearmans-r_s-kendalls-tau" class="section level2">
+<h2><span class="header-section-number">1.1</span> Pearson’s <span class="math inline">\(r\)</span>, Spearman’s <span class="math inline">\(r_s\)</span>, Kendall’s <span class="math inline">\(\tau\)</span></h2>
+<p>-<strong>Pearson’s correlation coefficient</strong> is a measure of linear correlation between two variables <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>. It has a value between +1 and −1, where 1 is total positive linear correlation, 0 is no linear correlation, and −1 is total negative linear correlation. The formula when applied to a population is given by <span class="math display">\[\rho_{X,Y} = \frac{cov(X,Y)}{\sigma_X\sigma_Y}\]</span> The sample Pearson’s correlation coeffiecient <span class="math inline">\(r\)</span> can be calculated by plugging in estimates for the population parameters. <span class="math display">\[r = \frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}\sqrt{\sum_{i=1}^n(y_i-\overline{y})^2}}\]</span> This formula aids the interpretation that the correlation is positive when both the <span class="math inline">\(x_i\)</span> and <span class="math inline">\(y_i\)</span> values lie above their their respective mean and negative when they lie on opposite side of their respective mean. The stronger this tendency is, the larger the magnitude of the correlation coefficient.</p>
+<p>-<strong>Spearman’s rank correlation coefficient</strong> is defined as the Pearson correlation coefficient between the ranked variables and denoted <span class="math inline">\(r_s\)</span>. To compute it on a sample of size <span class="math inline">\(n\)</span>, first the raw scores <span class="math inline">\(X_i,Y_i\)</span> are transformed into their corresponding ranks in ascending order denoted <span class="math inline">\(rgX_i,rgY_i\)</span>. In a bivariate sample, each variable is ranked and the correlation is computed: <span class="math display">\[r_s = \rho_{rg_xrg_Y}\frac{cov(rg_X,rg_Y)}{\sigma_{rg_x}\sigma_{rg_Y}}\]</span> The advantage of <span class="math inline">\(r_s\)</span> is that it can assess non-linear monotonic relationships between two variables. It will have a value of 1 is one variable is a strictly monotonic function of the other. For example, the dataset <span class="math inline">\(\{(1,1),(2,4),(3,8),(4,16)\}\)</span> is exponentially related and has the property <span class="math inline">\(rgX_i = rgY_i\)</span>. Identical values are usually each assigned fractional ranks equal to the average of their positions in the ascending order of the values. However, if all the ranks are distinct integers, there is the formula <span class="math display">\[r_s =1-\frac{6\sum d_i^2}{n(n^2-1)}\]</span> where <span class="math inline">\(d_i = rg(X_i) - rg(Y_i)\)</span> is the difference in ranks of an observation. Note that an important advantage of the Spearman Correlation is that it is less sensitive to outliers because Spearman’s rho limits the outlier to the value of its rank.</p>
+<p>-<strong>Kendall’s tau coefficient</strong></p>
+<p>Let <span class="math inline">\((x_i,y_i)\)</span> and <span class="math inline">\((x_j,y_j)\)</span> be two distinct observations in a bivariate sample. Then the observations are <em>concordant</em> if the ranks for both elements agree: <span class="math inline">\(y_i&lt;y_j\)</span> or if <span class="math inline">\(x_i&gt;x_j\)</span> and <span class="math inline">\(y_i&gt;y_j\)</span>. The observations are <em>discordant</em> if the ranks disagree: <span class="math inline">\(x_i&lt;x_j\)</span> and <span class="math inline">\(y_i&gt;y_j\)</span> or if <span class="math inline">\(x_i&gt;x_j\)</span> and <span class="math inline">\(y_i&lt;y_j\)</span>. The pair of observations is neither if the ranks are equal. The Kendall <span class="math inline">\(\tau\)</span> coefficient is defined as <span class="math display">\[\tau = \frac{\text{(number of concordant pairs) - (number of discordant pairs)}}{n(n-1)/2}\]</span></p>
+<p>Where the denominator is <span class="math inline">\(\binom{n}{2}\)</span>: the number of pairs of observations in the sample, so <span class="math inline">\(-1\leq \tau \leq 1\)</span>. An advantage of Kendall’s tau is that its interpretation in terms of the probabilities of observing the agreeable (concordant) and non-agreeable (discordant) pairs is very direct.Though in most of the situations, the interpretations of Kendall’s tau and Spearman’s rank correlation coefficient are very similar and thus invariably lead to the same inferences. Spearman’s rank correlation coefficient is the more widely used rank correlation coefficient. Kendall’s Tau may be less sensitive to error and give smaller values than Spearman’s rho correlation, but the required number of computations for its calcualation can make implementation inefficient.</p>
+<p>References:</p>
+<p><a href="https://en.wikipedia.org/wiki/Pearson_correlation_coefficient" class="uri">https://en.wikipedia.org/wiki/Pearson_correlation_coefficient</a> <a href="https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient">https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient</a> <a href="https://statistics.laerd.com/statistical-guides/spearmans-rank-order-correlation-statistical-guide.php" class="uri">https://statistics.laerd.com/statistical-guides/spearmans-rank-order-correlation-statistical-guide.php</a> <a href="https://en.wikipedia.org/wiki/Ranking#Ranking_in_statistics" class="uri">https://en.wikipedia.org/wiki/Ranking#Ranking_in_statistics</a> <a href="https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient" class="uri">https://en.wikipedia.org/wiki/Kendall_rank_correlation_coefficient</a> <a href="http://www.statisticssolutions.com/kendalls-tau-and-spearmans-rank-correlation-coefficient/" class="uri">http://www.statisticssolutions.com/kendalls-tau-and-spearmans-rank-correlation-coefficient/</a></p>
+<hr />
+</div>
+<div id="comparing-r-r_s-and-tau" class="section level2">
+<h2><span class="header-section-number">1.2</span> Comparing <span class="math inline">\(r\)</span>, <span class="math inline">\(r_s\)</span>, and <span class="math inline">\(\tau\)</span></h2>
+<p><img src="hw1img.png"></p>
+<pre class="r"><code>#organize observations into data frame
+df &lt;- data.frame(
+  x_1 = rep(c(0,1,10), times = 2),
+  x_2 = rep(c(0,1), each = 3),
+  p = c(.1, .4, .2, .1, .1, .1)
+)
+
+
+n = 10^5
+df.rows = nrow(df)
+
+#sample from the row indices of the data frame
+samples &lt;- sample(1:df.rows, size = n, replace = TRUE, prob = df$p)
+
+#create your sample by subsetting the data frame
+my_sample &lt;- df[samples,1:2]
+
+knitr::kable(table(my_sample), caption = &quot;Frequency table for sample from discrete bivariate&quot;)</code></pre>
+<table>
+<caption>Frequency table for sample from discrete bivariate</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">0</th>
+<th align="right">1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td align="right">9926</td>
+<td align="right">9905</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td align="right">39950</td>
+<td align="right">10086</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td align="right">20127</td>
+<td align="right">10006</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>get_cor &lt;- function(my_method){
+#function to get the 3 types of correlation coefficients
+cor(my_sample$x_2,my_sample$x_1, method = my_method)
+}
+
+corrs &lt;- c(pearson = get_cor(&quot;pearson&quot;), spearman = get_cor(&quot;spearman&quot;), kendall = get_cor(&quot;kendall&quot;))
+
+knitr::kable(data.frame(corrs))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">corrs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>pearson</td>
+<td align="right">0.0242226</td>
+</tr>
+<tr class="even">
+<td>spearman</td>
+<td align="right">-0.0820445</td>
+</tr>
+<tr class="odd">
+<td>kendall</td>
+<td align="right">-0.0779843</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>sample_mean &lt;- function(x){
+  weighted.mean(x, w = df$p)
+}
+
+df$rank_x1 &lt;- rep(c(1,2,3),2)
+df$rank_x2 &lt;-  rep(c(1,2),each = 3)
+
+sample_list &lt;- list(x1_mean = df$x_1, x2_mean = df$x_2, rank_x1_mean = rep(c(1,2,3),2), rank_x2_mean = rep(c(1,2),each = 3))
+
+means &lt;- lapply(sample_list, sample_mean)
+
+rank_df &lt;- df %&gt;% mutate(
+  x1_star = x_1 - means[[1]],
+  x2_star = x_2 - means[[2]],
+  r1_star = rank_x1 - means[[3]],
+  r2_star = rank_x2 - means[[4]],
+  x_cov = x1_star * x2_star,
+  r_cov = r1_star * r2_star
+) %&gt;%
+ select(x_1, x_2, x_cov, r_cov, p)</code></pre>
+<hr />
+</div>
+<div id="r-is-positive-but-r_s-and-tau-are-negative" class="section level2">
+<h2><span class="header-section-number">1.3</span> <span class="math inline">\(r\)</span> is positive but <span class="math inline">\(r_s\)</span> and <span class="math inline">\(\tau\)</span> are negative</h2>
+<p><strong>Pearson’s correlation is positive because the outlier inflates the positive contribution to the covariance.</strong></p>
+<p>To invstigate the covariance of the raw and the ranked data, observe this dataframe with the following transformed variables: x_cov = <span class="math inline">\((x_{i1}-\overline{x_1})(x_{i2}-\overline{x_2})\)</span> and r_cov = <span class="math inline">\((rgx_{i1}-\overline{rgx_1})(rgx_{i2}-\overline{rgx_2})\)</span></p>
+<table>
+<thead>
+<tr class="header">
+<th align="right">x_1</th>
+<th align="right">x_2</th>
+<th align="right">x_cov</th>
+<th align="right">r_cov</th>
+<th align="right">p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">1.05</td>
+<td align="right">0.33</td>
+<td align="right">0.1</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">0.75</td>
+<td align="right">0.03</td>
+<td align="right">0.4</td>
+</tr>
+<tr class="odd">
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">-1.95</td>
+<td align="right">-0.27</td>
+<td align="right">0.2</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">-2.45</td>
+<td align="right">-0.77</td>
+<td align="right">0.1</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">-1.75</td>
+<td align="right">-0.07</td>
+<td align="right">0.1</td>
+</tr>
+<tr class="even">
+<td align="right">10</td>
+<td align="right">1</td>
+<td align="right">4.55</td>
+<td align="right">0.63</td>
+<td align="right">0.1</td>
+</tr>
+</tbody>
+</table>
+<p>Because the distribution of x_1 is skewed to the right, its mean is rather large. We can observe that the mode of the distribution x = (1,0), contributes positively to the covariance of the two variables. In the raw data, this contribution is rather high: an additional .75 for each (1,0) in our sample. Similarly the outlier (10,1) contributes 4.55 to the covariance, a large amount. However, the ranking the variables lowers the mean and reduces the effect of the outlier on the covariance. The mode (1,0) now has a negligble contribution of .03, and the contribution of largest magnitude isn’t (10,1), but instead (0,1) with a negative contribution of -.77. This helps explain the negative value of Spearman’s correlation. It is easy to see Kendall’s correlation is negative because of the overwhelming number of discordant pairs of observations.</p>
+<hr />
+</div>
+<div id="construct-a-distribution-where-r_s-is-negative-but-tau-is-positive" class="section level2">
+<h2><span class="header-section-number">1.4</span> Construct a distribution where <span class="math inline">\(r_s\)</span> is negative but <span class="math inline">\(\tau\)</span> is positive</h2>
+<p>Notice a key difference between Kendall’s <span class="math inline">\(\tau\)</span> and Spearman’s <span class="math inline">\(\rho\)</span> is that the former is not sensitive to the distance between rank swaps, just their frequency. This can be illustrated using a discrete distribution of distinct integers that allows us to use the shortcut formula for <span class="math inline">\(r_s\)</span>.</p>
+<pre class="r"><code>x1 &lt;- 1:80
+x2 &lt;- c(80:70,11:69,10:1)
+cor(x1, x2, method = &quot;spearman&quot;)</code></pre>
+<pre><code>## [1] -0.1978434</code></pre>
+<pre class="r"><code>cor(x1, x2, method = &quot;kendall&quot;)</code></pre>
+<pre><code>## [1] 0.08291139</code></pre>
+<pre class="r"><code>plot(x1,x2)</code></pre>
+<p><img src="GLM_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>We can see that Spearman’s correlation is negative because of the weight of <span class="math inline">\(\sum d_i^2 = (80-1)^2 + (79-2)^2 + ...\)</span> is very large. Kendall’s tau is not sensitive to this fact, and shows a positive correlation because of the many concordant pairs in the middle of the distribution.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
