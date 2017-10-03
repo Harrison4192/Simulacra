@@ -238,8 +238,10 @@ $(document).ready(function () {
 </ul></li>
 <li><a href="#markov-chain-monte-carlo"><span class="toc-section-number">4</span> Markov Chain Monte Carlo</a><ul>
 <li><a href="#markov-chain-theory"><span class="toc-section-number">4.1</span> Markov Chain theory</a></li>
-<li><a href="#metropolis-hastings"><span class="toc-section-number">4.2</span> Metropolis Hastings</a></li>
+<li><a href="#simulating-a-random-walk"><span class="toc-section-number">4.2</span> Simulating a Random Walk</a></li>
 <li><a href="#random-walk-sampler"><span class="toc-section-number">4.3</span> Random Walk Sampler</a></li>
+<li><a href="#metropolis-hastings"><span class="toc-section-number">4.4</span> Metropolis Hastings</a></li>
+<li><a href="#comparison-with-accept-reject"><span class="toc-section-number">4.5</span> Comparison with Accept-Reject</a></li>
 </ul></li>
 </ul>
 </div>
@@ -830,31 +832,72 @@ Efron, Hastie: <a href="https://www.amazon.com/Computer-Age-Statistical-Inferenc
 <h1><span class="header-section-number">4</span> Markov Chain Monte Carlo</h1>
 <div id="markov-chain-theory" class="section level2">
 <h2><span class="header-section-number">4.1</span> Markov Chain theory</h2>
-<p>Estimation can become complicated in higher dimensions. Given a high-dimensional probability density, we may not be able to visualize a proposal distribution that matches it well enough to draw i.i.d samples from and hope they coincide with the target density. Instead, we can use dependent sampling, where our next sample draw is intended to visit some area of high probability in the density, based off our knowledge of the previous draw. Sampling in this way gives a Markov Chain. However, we can no longer rely on the law of large numbers for convergence, but instead we have ergodic theorems which give similar asymptotic results for Markov Chains. To be ergodic, the MC must have certain nice properties. One is that every state must be accessible and recurrent. Suppose we have a discrete Markov chain <span class="math inline">\(X = (X_0, X_1, \dots )\)</span> that has state space <span class="math inline">\(S = \{1, \dots, m\}\)</span>. We want that starting from any state, we have a non-zero probability of eventually reaching any other state. That is, the transition probability <span class="math inline">\(P_{ij} = P(X_{n+1} = j|X_n = i) &gt; 0\)</span> For some time step <span class="math inline">\(n\)</span>. This means the MC has a “regular” <span class="math inline">\(m\times m\)</span> transition matrix <strong>P</strong>, so for some power <span class="math inline">\(\textbf{P}^n\)</span>, the entry <span class="math inline">\(P_{ij}\)</span> will be positive. Each state must also be recurrent: once the markov chain visits that state, the chain it “regenerates”&quot; itself and has a probability of visiting it some time in the future again. Additionally the chain must be aperiodic, which means it cannot get stuck in an infinite loop of visiting certain states back and forth. If we draw a sample from this ergodic chain, it will reach a unique limiting stationary distribution <span class="math inline">\(\pi = (\pi_1,\dots, \pi_m)\)</span> which describes the on-average chance of being in one state at any given time-step. Since this distribution stays the same over time, we get convergence of the Markov Chain: a histogram of the chain at sample size <span class="math inline">\(n = 10^5\)</span> should match the histogram at <span class="math inline">\(n = 10^7\)</span>, which will reflect the proportion of times the markov chain visits each state as given by the limiting distribution. Using a sample from an ergodic MC is fundamentally identical to an i.i.d sample, so the ergodic theorem gives us the same result as the law of large numbers: <span class="math inline">\(\frac{1}{N}\sum_{i=1}^Nh(X_i) \approx E_f[h(X)]\)</span> where <span class="math inline">\(f\)</span> is the limiting distribution. We can also use a continuous-state markov chain with an uncountable state space <span class="math inline">\(\chi\)</span> and a transition kernel <span class="math inline">\(\mathcal{K}\)</span> defined on <span class="math inline">\(\chi \times \chi\)</span> with the property that <span class="math inline">\(\mathcal{K}(\centerdot) &gt;0\)</span> on its support (i.e all the states are accessible). A Monte Carlo method for simulating a distribution <span class="math inline">\(f\)</span> is to sample from an ergodic markov chain whose transition kernel converges to <span class="math inline">\(f\)</span>. The result is a sample <span class="math inline">\(X_1, \dots, X_N\)</span> approximately distributed from <span class="math inline">\(f\)</span> without having to directly simulate from <span class="math inline">\(f\)</span> itself!</p>
+<p>Estimation can become complicated in higher dimensions. Given a high-dimensional probability density, we may not be able to visualize a proposal distribution that matches it well enough to draw i.i.d samples from and hope they coincide with the target density. Instead, we can use dependent sampling, where our next sample draw is intended to visit some area of high probability in the density, based off our knowledge of the previous draw. Sampling in this way gives a Markov Chain. However, we can no longer rely on the law of large numbers for convergence, but instead we have ergodic theorems which give similar asymptotic results for Markov Chains. To be ergodic, the MC must have certain nice properties:</p>
+<p>-Every state must be accessible by the Markov Chain. Suppose we have a discrete Markov chain <span class="math inline">\(X = (X_0, X_1, \dots )\)</span> that has state space <span class="math inline">\(S = \{1, \dots, m\}\)</span>. We want that starting from any state, we have a non-zero probability of eventually reaching any other state. That is, the transition probability <span class="math inline">\(P_{ij} = P(X_{n+1} = j|X_n = i) &gt; 0\)</span> For some time step <span class="math inline">\(n\)</span>. This means the MC has a “regular” <span class="math inline">\(m\times m\)</span> transition matrix <strong>P</strong>, so for some power <span class="math inline">\(\textbf{P}^n\)</span>, the entry <span class="math inline">\(P_{ij}\)</span> will be positive. -Each state must also be recurrent: once the markov chain visits that state, the chain it “regenerates”&quot; itself and has a probability of visiting it some time in the future again. Thus the chain will visit that state infinitely many times; however, the proportion of visits will be different for each sate. -Additionally the chain must be aperiodic, which means it cannot get stuck in an infinite loop of visiting certain states back and forth.</p>
+<p>If we draw a sample from this ergodic chain, it will reach a unique limiting stationary distribution <span class="math inline">\(\pi = (\pi_1,\dots, \pi_m)\)</span> which describes the on-average chance of being in one state at any given time-step. Since this distribution stays the same over time, we get convergence of the Markov Chain- a histogram of the chain at sample size <span class="math inline">\(n = 10^5\)</span> should match the histogram at <span class="math inline">\(n = 10^7\)</span>, which will reflect the proportion of times the markov chain visits each state as given by the limiting distribution. Using a sample from an ergodic MC is fundamentally identical to an i.i.d sample, so the ergodic theorem gives us the same result as the law of large numbers: <span class="math inline">\(\frac{1}{N}\sum_{i=1}^Nh(X_i) \approx E_f[h(X)]\)</span> where <span class="math inline">\(f\)</span> is the limiting distribution.</p>
+<p>We can also use a continuous-state markov chain with an uncountable state space <span class="math inline">\(\chi\)</span> and a conditional distribution called the transition kernel <span class="math inline">\(\mathcal{K(x,y)}\)</span> which gives the probability of transitioning from state <span class="math inline">\(x\)</span> to state <span class="math inline">\(y\)</span>, defined on <span class="math inline">\(\chi \times \chi\)</span> with the property that <span class="math inline">\(\mathcal{K}(x,\centerdot) &gt;0\)</span> on its support (i.e all the states are accessible). A Monte Carlo method for simulating a distribution <span class="math inline">\(f\)</span> is to sample from an ergodic markov chain whose transition kernel converges to <span class="math inline">\(f\)</span>. The result is a sample <span class="math inline">\(X_1, \dots, X_N\)</span> approximately distributed from <span class="math inline">\(f\)</span> without having to directly simulate from <span class="math inline">\(f\)</span> itself!</p>
 <p>See:<br />
 Dobrow: <a href="https://www.amazon.com/Introduction-Stochastic-Processes-Robert-Dobrow-ebook/dp/B01DNVSQLW/ref=sr_1_1?s=digital-text&amp;ie=UTF8&amp;qid=1506824267&amp;sr=1-1&amp;keywords=Introduction+to+Stochastic+Processes+with+R">Introduction to Stochastic Processes with R</a> (2016) Chapter 3: <em>Markov Chains for the Long Term</em><br />
 Robert, Casella: <a href="https://www.amazon.com/Monte-Statistical-Methods-Springer-Statistics/dp/0387212396/ref=sr_1_fkmr0_1?s=digital-text&amp;ie=UTF8&amp;qid=1506824633&amp;sr=8-1-fkmr0&amp;keywords=Monte+Carlo+Statistical+Methods+2004">Monte Carlo Statistical Methods</a> (2004) Chapter 7.1: <em>The MCMC Principle</em></p>
 </div>
-<div id="metropolis-hastings" class="section level2">
-<h2><span class="header-section-number">4.2</span> Metropolis Hastings</h2>
-<p>The original Metropolis Hastings algorithm was used to determine the ideal configuration of of a system of N particles. Let’s say each particle has a location in 2-dimensional space describes by <span class="math inline">\(r\)</span> and <span class="math inline">\(s\)</span> coordinates, and the state of the system is the coordinates of each particle at a given moment in time. A markov chain can describe the evolution of the system as it transitions from one particle configuration to the next. Assuming the particles are constrained in a unit square, a state vector would look like <span class="math inline">\(X = \{(r_1, s_1),\dots, (r_N,s_N)\}\in ([0,1]^2)^N\)</span> distributed according the Boltzmann distribution <span class="math inline">\(\pi(x) = \frac{1}{z}e^{-\mathcal{E}(x)}\)</span> where <span class="math inline">\(\mathcal{E}\)</span> is an energy function of the state. Our goal is to sample from the Boltzmann distribution and find its expected value, so we can determine the ideal configuration of the system. However, <span class="math inline">\(z\)</span> may be intractible and we don’t have a sampling procedure. Faced with this problem, the physicists Metropolis and Hastings invented one. Here’s how it works: we start with a target distribution <span class="math inline">\(\pi\)</span> we want to sample from, and construct a transition kernel that converges to <span class="math inline">\(\pi\)</span>. We need a symmetric proposal transition matrix <span class="math inline">\(Q\)</span> that suggests next state of the Markov Chain based off the previous state. <span class="math inline">\(Q\)</span> can be as simple as a uniform distribution that chooses a nearby configuration at random, as long as it gives an equal transition probability of reversing that configuration. The actual transition matrix of the Markov Chain is given by <span class="math inline">\(T\)</span> and has probability <span class="math inline">\(T(X_{n+1}|X_n) =\)</span> (Probability that Q proposes transition to <span class="math inline">\(X_{n+1}\)</span>)(Probability that this transition is accepted). If Q is a symmetric and ergodic, then T is ergodic with limiting distribution <span class="math inline">\(\pi\)</span>, where we have defined P(accept <span class="math inline">\(x^{*}|X_n\)</span>) = min<span class="math inline">\(\{1, \frac{\pi(x^*)}{\pi(x)}\}\)</span>. Let’s illustrate that <span class="math inline">\(\pi\)</span> is in fact the limiting distribution of T. Recall that a time-reversible Markov Chain is such that it’s stationary distribution satisfies the property of detailed balance: <span class="math inline">\(\pi_aT(a|b)=\pi_bT(b|a)\)</span>. In our example the proof hinges on the fact that we choose a symmetric proposal matrix Q. <span class="math display">\[\pi_bT(a|b) \\ =\pi_bQ(a|b)\min\{1, \frac{\pi_a}{\pi_b}\}\\ 
-= Q(a|b)\min\{\pi_b, \pi_a\} \\
-= Q(b|a)\min\{\pi_b, \pi_a\} \\ = \pi_aQ(b|a)\min\{\frac{\pi_b}{\pi_a}, 1\} \\ = \pi_aT(b|a)\]</span> Since <span class="math inline">\(T\)</span> is time reversible, <span class="math inline">\(\pi\)</span> is the unique limiting distribution of <span class="math inline">\(T\)</span>. This is the basis of the independence sampler algorithm.</p>
-<p>See:<br />
-<a href="https://www.youtube.com/watch?v=0j-Pq1OU4LY">Mathematical Monk on MCMC</a></p>
+<div id="simulating-a-random-walk" class="section level2">
+<h2><span class="header-section-number">4.2</span> Simulating a Random Walk</h2>
+<p>A <em>simple random walk</em> is a markov chain <span class="math display">\[X^{(t+1)} |X^{(0)},\dots, X^{(t)} \sim \mathcal{K}(X^{(t)},X^{(t+1)})\]</span> that satisfies <span class="math inline">\(X^{(t+1)} = X^{(t)} + \epsilon_t\)</span>, where <span class="math inline">\(\epsilon_t\)</span> is independent gaussian noise <span class="math inline">\(\epsilon_t\sim\mathcal{N}(0,1)\)</span>. Then the transition kernel $(K) (X^{(t),1)</p>
+<p>It turns out, the simple random walk does not converge, so it cannot be described by a stationary distribution.</p>
+<pre class="r"><code>t &lt;- 10^5
+rho &lt;- 1
+markov_chain &lt;- numeric(t)
+markov_chain[1] = rnorm(1)
+for(i in 2:t){
+  markov_chain[i] &lt;- rnorm(n = 1, mean = markov_chain[i-1] * rho, sd = 1 )
+}
+
+
+
+mc_frame &lt;- data.frame(head = markov_chain[1:(10^5/2)],
+                       tail = markov_chain[(10^5/2+1):10^5])
+
+ggplot(data = mc_frame) +
+  geom_freqpoly(aes(x = head), col = &quot;blue&quot;,  alpha = .5) + 
+  geom_freqpoly(aes(x = tail), col = &quot;orange&quot;, alpha = .5) </code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p>Since the head and tail of the random walk have completely different distributions, we can see that it won’t converge.</p>
+<p>However, if we make a slight contraction, the random walk does in fact converge.</p>
+<p>Consider the Markov Chain defined by <span class="math inline">\(X^{(t+1)} = \rho X^{(t)} + \epsilon_t\)</span> where <span class="math inline">\(\epsilon_t\sim\mathcal{N}(0,1)\)</span> Using <span class="math inline">\(\rho = .9\)</span>, we will show that the stationary distribution is <span class="math inline">\(\mathcal{N}\left(0, \frac{1}{1-\rho^2}\right)\)</span>.</p>
+<pre class="r"><code>t &lt;- 10^5
+rho &lt;- .9
+markov_chain &lt;- numeric(t)
+markov_chain[1] = rnorm(1)
+for(i in 2:t){
+  markov_chain[i] &lt;- rnorm(n = 1, mean = markov_chain[i-1] * rho, sd = 1 )
+}
+
+stationary_distribution &lt;-  rnorm(n = t, mean = 0, sd = sqrt(1/(1-rho^2)))
+
+mc_frame &lt;- data.frame(mc = markov_chain,
+                       s_dis = stationary_distribution)
+
+ggplot(data = mc_frame) +
+  geom_freqpoly(aes(x = mc), col = &quot;blue&quot;,  alpha = .5) + 
+  geom_freqpoly(aes(x = s_dis), col = &quot;orange&quot;, alpha = .5) </code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-21-1.png" width="672" /></p>
+<p>Notice the the stationary distribution would not exist for the simple random walk: it is undefined for <span class="math inline">\(\rho = 1\)</span>.</p>
+<p>Robert, Casella: <a href="https://www.amazon.com/Introducing-Monte-Carlo-Methods-Use/dp/1441915753/ref=sr_1_1?ie=UTF8&amp;qid=1507053415&amp;sr=8-1&amp;keywords=Introducing+Monte+Carlo+Methods+with+R">Introducing Monte Carlo Methods with R</a> (2010) Chapter 6.2: <em>A Peek at Markov Chain Theory</em></p>
 </div>
 <div id="random-walk-sampler" class="section level2">
 <h2><span class="header-section-number">4.3</span> Random Walk Sampler</h2>
 <p>Here we use a random walk to generate a sample from a bivariate normal distribution. Though we already have ways to generate random multivaraite normals, this algorithm can be applied to sample from any exponential kernel.</p>
+<p>We use a bivariate normal with mean 0 and standard deviation 3 multiplied by 2 to simulate the noise of the random walk. Increasing the noise of the walk can help explore the distribution faster, but may lead to more rejected proposals, slowing down convergence.</p>
 <pre class="r"><code>library(mvtnorm)
 
 N &lt;- 10^5
 
 chain &lt;- matrix(rep(0,N*2), nrow = N)
 
+#initialize X_0
 chain[1,] &lt;- c(2,2)
 
-
+#acceptance function
 f &lt;- function(x){ dmvnorm(x)}
 
 
@@ -862,11 +905,12 @@ acceptance &lt;- function(y, x){
   min(f(y)/f(x) , 1)
 }
 
-
+#generates candidate move
 biv_rnorm &lt;- function(){
   rnorm(n = 2, sd = 3)
 }
 
+#sample the chain
 for(t in 1:(N-1)){
 
 X_t &lt;- chain[t,]
@@ -889,10 +933,85 @@ else{
 }
 
 hist(chain[,1])</code></pre>
-<p><img src="simulations_files/figure-html/unnamed-chunk-20-1.png" width="672" /></p>
+<p><img src="simulations_files/figure-html/unnamed-chunk-22-1.png" width="672" /></p>
 <pre class="r"><code>hist(chain[,2])</code></pre>
-<p><img src="simulations_files/figure-html/unnamed-chunk-20-2.png" width="672" /></p>
+<p><img src="simulations_files/figure-html/unnamed-chunk-22-2.png" width="672" /></p>
 <p>The histograms show the marginal distributions are standard normal, as expected.</p>
+</div>
+<div id="metropolis-hastings" class="section level2">
+<h2><span class="header-section-number">4.4</span> Metropolis Hastings</h2>
+<p>The original Metropolis Hastings algorithm was used to determine the ideal configuration of of a system of N particles. Let’s say each particle has a location in 2-dimensional space describes by <span class="math inline">\(r\)</span> and <span class="math inline">\(s\)</span> coordinates, and the state of the system is the coordinates of each particle at a given moment in time. A markov chain can describe the evolution of the system as it transitions from one particle configuration to the next. Assuming the particles are constrained in a unit square, a state vector would look like <span class="math inline">\(X = \{(r_1, s_1),\dots, (r_N,s_N)\}\in ([0,1]^2)^N\)</span> distributed according the Boltzmann distribution <span class="math inline">\(\pi(x) = \frac{1}{z}e^{-\mathcal{E}(x)}\)</span> where <span class="math inline">\(\mathcal{E}\)</span> is an energy function of the state. Our goal is to sample from the Boltzmann distribution and find its expected value, so we can determine the ideal configuration of the system. However, <span class="math inline">\(z\)</span> may be intractible and we don’t have a sampling procedure. Faced with this problem, the physicists Metropolis and Hastings invented one. Here’s how it works: we start with a target distribution <span class="math inline">\(\pi\)</span> we want to sample from, and construct a transition kernel that converges to <span class="math inline">\(\pi\)</span>. We need a symmetric proposal transition matrix <span class="math inline">\(Q\)</span> that suggests next state of the Markov Chain based off the previous state. <span class="math inline">\(Q\)</span> can be as simple as a uniform distribution that chooses a nearby configuration at random, as long as it gives an equal transition probability of reversing that configuration. The actual transition matrix of the Markov Chain <span class="math inline">\(X\)</span> that we construct is given by <span class="math inline">\(T\)</span> and has transition probability <span class="math inline">\(T(X_{n+1}|X_n) =\)</span> (Probability that Q proposes transition to <span class="math inline">\(X_{n+1}=x^*\)</span>)(Probability that the transition to <span class="math inline">\(x^*\)</span> is accepted) and define P(accept <span class="math inline">\(x^{*}|X_n\)</span>) = min<span class="math inline">\(\{1, \frac{\pi(x^*)}{\pi(x)}\}\)</span>. If Q is symmetric, then <span class="math inline">\(X\)</span> is time reversible and therefore ergodic with limiting distribution <span class="math inline">\(\pi\)</span>. Let’s illustrate that <span class="math inline">\(\pi\)</span> is in fact the limiting distribution of T. Recall that a time-reversible Markov Chain is such that its stationary distribution satisfies the property of detailed balance: <span class="math inline">\(\pi_aT(a|b)=\pi_bT(b|a)\)</span>. In our example the proof hinges on the fact that we choose a symmetric proposal matrix Q. <span class="math display">\[\pi_bT(a|b) \\ =\pi_bQ(a|b)\min\{1, \frac{\pi_a}{\pi_b}\}\\ 
+= Q(a|b)\min\{\pi_b, \pi_a\} \\
+= Q(b|a)\min\{\pi_b, \pi_a\} \\ = \pi_aQ(b|a)\min\{\frac{\pi_b}{\pi_a}, 1\} \\ = \pi_aT(b|a)\]</span> Since <span class="math inline">\(T\)</span> is time reversible, <span class="math inline">\(\pi\)</span> is the unique limiting distribution of <span class="math inline">\(T\)</span>. This is the basis of the independence sampler algorithm.</p>
+<p>See:<br />
+<a href="https://www.youtube.com/watch?v=0j-Pq1OU4LY">Mathematical Monk on MCMC</a></p>
+<p>Robert, Casella <a href="https://www.amazon.com/Introducing-Monte-Carlo-Methods-Use/dp/1441915753/ref=sr_1_1?ie=UTF8&amp;qid=1507053415&amp;sr=8-1&amp;keywords=Introducing+Monte+Carlo+Methods+with+R">Introducing Monte Carlo Methods with R</a> (2010) Chapter 6: <em>Metropolis-Hastings Algorithm</em></p>
+</div>
+<div id="comparison-with-accept-reject" class="section level2">
+<h2><span class="header-section-number">4.5</span> Comparison with Accept-Reject</h2>
+<p>Here is a comparison of simulations for a gamma(4.3,6.2) density using the following methods:</p>
+<p>-accept-reject using a gamma(4,7) candidate</p>
+<p>-Metropolis-Hastings using a gamma(4,7) candidate</p>
+<p>-Metropolis-Hastings using a gamma(5,6) candidate</p>
+<pre class="r"><code>g47=rgamma(5000,4,7)
+u=runif(5000,max=dgamma(g47,4,7))
+x=g47[u&lt;dgamma(g47,4.3,6.2)]
+par(mfrow=c(1,3),mar=c(4,4,1,1))
+hist(x,freq=FALSE,xlab=&quot;&quot;,ylab=&quot;&quot;,col=&quot;wheat2&quot;,
+main=&quot;a: Accept-Rej with Ga(4.7) proposal&quot;)
+curve(dgamma(x,4.3,6.2),lwd=2,col=&quot;sienna&quot;,add=T)
+
+a &lt;- length(x)/5000
+
+X=rep(0,5000)
+X[1]=rgamma(1,4.3,6.2)
+for (t in 2:5000){
+rho=(dgamma(X[t-1],4,7)*dgamma(g47[t],4.3,6.2))/
+(dgamma(g47[t],4,7)*dgamma(X[t-1],4.3,6.2))
+X[t]=X[t-1]+(g47[t]-X[t-1])*(runif(1)&lt;rho) #move to g47[t] if it is accepted, otherwise stay
+}
+hist(X,freq=FALSE,xlab=&quot;&quot;,ylab=&quot;&quot;,col=&quot;wheat2&quot;,
+main=&quot;b: Met-Hast with Ga(4,7) proposal&quot;)
+curve(dgamma(x,4.3,6.2),lwd=2,col=&quot;sienna&quot;,add=T)
+
+b &lt;- length(unique(X))/5000
+
+g56=rgamma(5000,5,6)
+X[1]=rgamma(1,4.3,6.2)
+for (t in 2:5000){
+rho=(dgamma(X[t-1],5,6)*dgamma(g56[t],4.3,6.2))/
+(dgamma(g56[t],5,6)*dgamma(X[t-1],4.3,6.2))
+X[t]=X[t-1]+(g56[t]-X[t-1])*(runif(1)&lt;rho)
+}
+c &lt;- length(unique(X))/5000
+hist(X,freq=FALSE,xlab=&quot;&quot;,ylab=&quot;&quot;,col=&quot;wheat2&quot;,
+main=&quot;c: Met-Hast with Ga(5,6) proposal&quot;)
+curve(dgamma(x,4.3,6.2),lwd=2,col=&quot;sienna&quot;,add=T)</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<table>
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>Efficiency</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>a</td>
+<td>0.8432</td>
+</tr>
+<tr class="even">
+<td>b</td>
+<td>0.7934</td>
+</tr>
+<tr class="odd">
+<td>c</td>
+<td>0.781</td>
+</tr>
+</tbody>
+</table>
+<p>The three methods produce similar results.</p>
+<p>Robert, Casella <a href="https://www.amazon.com/Introducing-Monte-Carlo-Methods-Use/dp/1441915753/ref=sr_1_1?ie=UTF8&amp;qid=1507053415&amp;sr=8-1&amp;keywords=Introducing+Monte+Carlo+Methods+with+R">Introducing Monte Carlo Methods with R</a> (2010) Chapter 6: <em>Metropolis-Hastings Algorithm</em>, <strong>exercise 6.9</strong></p>
 </div>
 </div>
 
