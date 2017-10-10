@@ -242,6 +242,7 @@ $(document).ready(function () {
 <li><a href="#random-walk-sampler"><span class="toc-section-number">4.3</span> Random Walk Sampler</a></li>
 <li><a href="#metropolis-hastings"><span class="toc-section-number">4.4</span> Metropolis Hastings</a></li>
 <li><a href="#comparison-with-accept-reject"><span class="toc-section-number">4.5</span> Comparison with Accept-Reject</a></li>
+<li><a href="#multi-stage-gibbs-sampler"><span class="toc-section-number">4.6</span> Multi-stage Gibb’s sampler</a></li>
 </ul></li>
 </ul>
 </div>
@@ -1013,6 +1014,41 @@ curve(dgamma(x,4.3,6.2),lwd=2,col=&quot;sienna&quot;,add=T)</code></pre>
 </table>
 <p>The three methods produce similar results.</p>
 <p>Robert, Casella <a href="https://www.amazon.com/Introducing-Monte-Carlo-Methods-Use/dp/1441915753/ref=sr_1_1?ie=UTF8&amp;qid=1507053415&amp;sr=8-1&amp;keywords=Introducing+Monte+Carlo+Methods+with+R">Introducing Monte Carlo Methods with R</a> (2010) Chapter 6: <em>Metropolis-Hastings Algorithm</em>, <strong>exercise 6.9</strong></p>
+</div>
+<div id="multi-stage-gibbs-sampler" class="section level2">
+<h2><span class="header-section-number">4.6</span> Multi-stage Gibb’s sampler</h2>
+<p>The Gibb’s sampler is a method to sample from a multivariate distrubtion by generating a Markov Chain. Suppose we have <span class="math inline">\(m\)</span>-dimensional random variable <span class="math inline">\(X = (X_1,\dots,X_m) \sim \pi\)</span>. The Gibb’s sampler samples from the <em>full conditionals</em> of <span class="math inline">\(\pi\)</span>: <span class="math inline">\(\pi(X_1|X_2, \dots X_m)\)</span>, <span class="math inline">\(\pi(X_2|X_1, X_3, \dots, X_m)\)</span>, <span class="math inline">\(\dots\)</span>, <span class="math inline">\(\pi(X_m|X_1,\dots ,X_{m-1})\)</span> to generate a Markov Chain whose target distribution is <span class="math inline">\(\pi(X)\)</span>. It turns out the Gibb’s Sampler is a special case of Metropolis-Hastings where the probability of accepting the proposed state is always 1. The proposed state is determined iteratively sing the full conditional distributions. If we initialize the first state as <span class="math inline">\((x^{(0)}_1,\dots, x^{(0)}_m\)</span>), we have <span class="math inline">\(x^{(1)}_1\sim P(X_1|x^{(0)}_2, \dots, x^{(0)}_m)\)</span>. Then update the current state with <span class="math inline">\(x_1^{(0)} \rightarrow x_1^{(1)}\)</span> and sample the next dimension <span class="math inline">\(x^{(1)}_2\sim P(X_2|x_1^{(1)}, x^{(0)}_3, \dots, x^{(0)}_m)\)</span>. Keep in mind that the superscript is the time-step and the subscript is the dimension. We iterate <span class="math inline">\(m\)</span> times to generate the proposal for the next state, which is then accepted automatically, and repeat to get a sample. The sample we generate is a Markov Chain with limiting distribution <span class="math inline">\(\pi\)</span>, which is the target distribution. The advantage of the Gibb’s sampler is that it can sample from a high-dimensional density using univariate densities, simplifying the problem. Of course, we will need to be able to determine the conditional distributions before we can sample from them.</p>
+<p>We will implement the Gibb’s sampler to simulate the following density: <span class="math display">\[\pi(x, p, n) \propto \binom{n}{x} p^x(1-p)^{n-x}\frac{4^n}{n!}\]</span> where <span class="math inline">\(x, n \in \mathbb{Z}_{\geq0}\)</span> and <span class="math inline">\(p\in (0,1)\)</span> To identify the conditional distributions, hold the two other variable constant, and we see that<span class="math display">\[X| N=n, P=p \propto \text{binomial}(n, p)\]</span> <span class="math display">\[P|X = x, N= n \propto \text{beta}(x+1, n-x+1)\]</span> <span class="math display">\[N|P=p, X=x \propto Z + x \text{ where } Z\sim \text{poisson}(\lambda = 4(1-p))\]</span></p>
+<pre class="r"><code>N &lt;- 10^3
+sim &lt;- matrix(rep(0,3*N),ncol=3)
+
+#Initialize first state
+sim[1, ] &lt;- c(1,.5,2) #x, p, n
+
+#Run Gibb&#39;s Sampler
+for(i in 2:N){
+  sim[i,1] &lt;- rbinom(1,sim[i-1,3],sim[i-1,2])
+  sim[i,2] &lt;- rbeta(1,sim[i,1]+1,sim[i-1,3]-sim[i,1]+1)
+  sim[i,3] &lt;- rpois(1,4*(1-sim[i,2]))+sim[i,1] 
+}
+
+gibbs_sample &lt;- data.frame(x = sim[, 1],
+                           p = sim[, 2],
+                           n = sim[, 3])
+
+
+
+
+marginals &lt;- list(qplot(gibbs_sample$x, geom=&quot;histogram&quot;, bins = 50, color = I(&quot;violet&quot;)),
+                  qplot(gibbs_sample$p, geom=&quot;histogram&quot;, bins = 30, color = I(&quot;violet&quot;)),
+                  qplot(gibbs_sample$n, geom=&quot;histogram&quot;, bins = 50, color = I(&quot;violet&quot;))
+)
+
+
+grid.arrange(marginals[[1]], marginals[[2]], marginals[[3]], ncol = 3, top = &quot;Marginal Distributions&quot;)</code></pre>
+<p><img src="simulations_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<p>See:<br />
+Dobrow: <a href="https://www.amazon.com/Introduction-Stochastic-Processes-Robert-Dobrow-ebook/dp/B01DNVSQLW/ref=sr_1_1?s=digital-text&amp;ie=UTF8&amp;qid=1506824267&amp;sr=1-1&amp;keywords=Introduction+to+Stochastic+Processes+with+R">Introduction to Stochastic Processes with R</a> (2016) <em>chapter 5.3</em>: <strong>gibb’s sampler</strong></p>
 </div>
 </div>
 
