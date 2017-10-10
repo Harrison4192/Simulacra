@@ -12,3 +12,12 @@ scales
 MASS
 ggthemes
 mvtnorm
+FSelector
+lubridate
+randomForest
+rattle
+stringi
+bindrcpp
+rlang
+swirl
+gridExtra

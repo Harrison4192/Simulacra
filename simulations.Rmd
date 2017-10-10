@@ -415,7 +415,7 @@ Robert, Casella: [Monte Carlo Statistical Methods](https://www.amazon.com/Monte-
 
 ##Simulating a Random Walk
 
-A *simple random walk* is a markov chain $$X^{(t+1)} |X^{(0)},\dots, X^{(t)} \sim \mathcal{K}(X^{(t)},X^{(t+1)})$$ that satisfies $X^{(t+1)} = X^{(t)} + \epsilon_t$, where $\epsilon_t$ is independent gaussian noise $\epsilon_t\sim\mathcal{N}(0,1)$. Then the transition kernel $\mathcal(K) \sim \mathcal{N}(X^{(t),1)
+A *simple random walk* is a markov chain $$X^{(t+1)} |X^{(0)},\dots, X^{(t)} \sim \mathcal{K}(X^{(t)},X^{(t+1)})$$ that satisfies $X^{(t+1)} = X^{(t)} + \epsilon_t$, where $\epsilon_t$ is independent gaussian noise $\epsilon_t\sim\mathcal{N}(0,1)$. Then the transition kernel $\mathcal(K) \sim \mathcal{N}(X^{(t)},1)$
 
 It turns out, the simple random walk does not converge, so it cannot be described by a stationary distribution. 
 ```{r message= FALSE}
@@ -464,7 +464,7 @@ ggplot(data = mc_frame) +
 
 Notice the the stationary distribution would not exist for the simple random walk: it is undefined for $\rho = 1$.
 
-
+See:
 
 Robert, Casella: [Introducing Monte Carlo Methods with R](https://www.amazon.com/Introducing-Monte-Carlo-Methods-Use/dp/1441915753/ref=sr_1_1?ie=UTF8&qid=1507053415&sr=8-1&keywords=Introducing+Monte+Carlo+Methods+with+R) (2010) Chapter 6.2: *A Peek at Markov Chain Theory*
 
@@ -528,7 +528,7 @@ The histograms show the marginal distributions are standard normal, as expected.
 
 ##Metropolis Hastings
 
-The original Metropolis Hastings algorithm was used to determine the ideal configuration of of a system of N particles. Let's say each particle has a location in 2-dimensional space describes by $r$ and $s$ coordinates, and the state of the system is the coordinates of each particle at a given moment in time. A markov chain can describe the evolution of the system as it transitions from one particle configuration to the next. Assuming the particles are constrained in a unit square, a state vector would look like $X = \{(r_1, s_1),\dots, (r_N,s_N)\}\in ([0,1]^2)^N$ distributed according the Boltzmann distribution  $\pi(x) = \frac{1}{z}e^{-\mathcal{E}(x)}$ where $\mathcal{E}$ is an energy function of the state. Our goal is to sample from the Boltzmann distribution and find its expected value, so we can determine the ideal configuration of the system. However, $z$ may be intractible and we don't have a sampling procedure. Faced with this problem, the physicists Metropolis and Hastings invented one. Here's how it works: we start with a target distribution $\pi$ we want to sample from, and construct a transition kernel that converges to $\pi$. We need a symmetric proposal transition matrix $Q$ that suggests next state of the Markov Chain based off the previous state. $Q$ can be as simple as a uniform distribution that chooses a nearby configuration at random, as long as it gives an equal transition probability of reversing that configuration. The actual transition matrix of the Markov Chain $X$ that we construct is given by $T$ and has transition probability $T(X_{n+1}|X_n) =$ (Probability that Q proposes transition to $X_{n+1}=x^*$)(Probability that the transition to $x^*$ is accepted) and define P(accept $x^{*}|X_n$) = min$\{1, \frac{\pi(x^*)}{\pi(x)}\}$. If Q is symmetric, then $X$ is time reversible and therefore ergodic with limiting distribution $\pi$. Let's illustrate that $\pi$ is in fact the limiting distribution of T. Recall that a time-reversible Markov Chain is such that its stationary distribution satisfies the property of detailed balance: $\pi_aT(a|b)=\pi_bT(b|a)$. 
+The original Metropolis Hastings algorithm was used to determine the ideal configuration of of a system of N particles. Let's say each particle has a location in 2-dimensional space describes by $r$ and $s$ coordinates, and the state of the system is the coordinates of each particle at a given moment in time. A markov chain can describe the evolution of the system as it transitions from one particle configuration to the next. Assuming the particles are constrained in a unit square, a state vector would look like $X = \{(r_1, s_1),\dots, (r_N,s_N)\}\in ([0,1]^2)^N$ distributed according the Boltzmann distribution  $\pi(x) = \frac{1}{z}e^{-\mathcal{E}(x)}$ where $\mathcal{E}$ is an energy function of the state. Our goal is to sample from the Boltzmann distribution and find its expected value, so we can determine the ideal configuration of the system. However, $z$ may be intractible and we don't have a sampling procedure. Faced with this problem, the physicists Metropolis and Hastings invented one. Here's how it works: we start with a target distribution $\pi$ we want to sample from, and construct a transition kernel that converges to $\pi$. We need a symmetric proposal transition matrix $Q$ that suggests the next state of the Markov Chain based off the previous state. $Q$ can be as simple as a uniform distribution that chooses a nearby configuration at random, as long as it gives an equal transition probability of reversing that configuration. The actual transition matrix of the Markov Chain $X$ that we construct is given by $T$ and has transition probability $T(X_{n+1}|X_n) =$ (Probability that Q proposes transition to $X_{n+1}=x^*$)(Probability that the transition to $x^*$ is accepted) and define P(accept $x^{*}|X_n$) = min$\{1, \frac{\pi(x^*)}{\pi(x)}\}$. If Q is symmetric, then $X$ is time reversible and therefore ergodic with limiting distribution $\pi$. Let's illustrate that $\pi$ is in fact the limiting distribution of T. Recall that a time-reversible Markov Chain is such that its stationary distribution satisfies the property of detailed balance: $\pi_aT(a|b)=\pi_bT(b|a)$. 
 In our example the proof hinges on the fact that we choose a symmetric proposal matrix Q.
 $$\pi_bT(a|b) \\ =\pi_bQ(a|b)\min\{1, \frac{\pi_a}{\pi_b}\}\\ 
 = Q(a|b)\min\{\pi_b, \pi_a\} \\
@@ -545,11 +545,11 @@ Robert, Casella [Introducing Monte Carlo Methods with R](https://www.amazon.com/
 
 Here is a comparison of simulations for a gamma(4.3,6.2) density using the following methods:
 
--accept-reject using a gamma(4,7) candidate
+-**a**: accept-reject using a gamma(4,7) candidate
 
--Metropolis-Hastings using a gamma(4,7) candidate
+-**b**: Metropolis-Hastings using a gamma(4,7) candidate
 
--Metropolis-Hastings using a gamma(5,6) candidate
+-**c**: Metropolis-Hastings using a gamma(5,6) candidate
 
 
 
@@ -559,7 +559,7 @@ u=runif(5000,max=dgamma(g47,4,7))
 x=g47[u<dgamma(g47,4.3,6.2)]
 par(mfrow=c(1,3),mar=c(4,4,1,1))
 hist(x,freq=FALSE,xlab="",ylab="",col="wheat2",
-main="a: Accept-Rej with Ga(4.7) proposal")
+main="a: Accept-Rej with Ga(4.7) prop")
 curve(dgamma(x,4.3,6.2),lwd=2,col="sienna",add=T)
 
 a <- length(x)/5000
@@ -572,7 +572,7 @@ rho=(dgamma(X[t-1],4,7)*dgamma(g47[t],4.3,6.2))/
 X[t]=X[t-1]+(g47[t]-X[t-1])*(runif(1)<rho) #move to g47[t] if it is accepted, otherwise stay
 }
 hist(X,freq=FALSE,xlab="",ylab="",col="wheat2",
-main="b: Met-Hast with Ga(4,7) proposal")
+main="b: Met-Hast with Ga(4,7) prop")
 curve(dgamma(x,4.3,6.2),lwd=2,col="sienna",add=T)
 
 b <- length(unique(X))/5000
@@ -586,7 +586,7 @@ X[t]=X[t-1]+(g56[t]-X[t-1])*(runif(1)<rho)
 }
 c <- length(unique(X))/5000
 hist(X,freq=FALSE,xlab="",ylab="",col="wheat2",
-main="c: Met-Hast with Ga(5,6) proposal")
+main="c: Met-Hast with Ga(5,6) prop")
 curve(dgamma(x,4.3,6.2),lwd=2,col="sienna",add=T)
 
 

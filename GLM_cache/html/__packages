@@ -7,3 +7,14 @@ readr
 purrr
 dplyr
 bindrcpp
+FSelector
+lubridate
+randomForest
+rattle
+scales
+stringi
+stringr
+magrittr
+rlang
+swirl
+gridExtra

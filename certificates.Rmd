@@ -7,3 +7,4 @@ output:
 <embed src="Certificates/Rmarkdown.pdf" width="300" height="250" type='application/pdf'>
 <embed src="Certificates/certificate (1).pdf" width="300" height="250" type='application/pdf'>
 <embed src="Certificates/certificate.pdf" width="300" height="250" type='application/pdf'>
+<embed src="Certificates/writingfunctionsR.pdf" width="300" height="250" type='application/pdf'>
