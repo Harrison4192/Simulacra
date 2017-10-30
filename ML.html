@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+<meta name="author" content="Harrison Tietze" />
+
+
+<title>ML</title>
+
+<script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+<style type="text/css">
+h1 {
+  font-size: 34px;
+}
+h1.title {
+  font-size: 38px;
+}
+h2 {
+  font-size: 30px;
+}
+h3 {
+  font-size: 24px;
+}
+h4 {
+  font-size: 18px;
+}
+h5 {
+  font-size: 16px;
+}
+h6 {
+  font-size: 12px;
+}
+.table th:not([align]) {
+  text-align: left;
+}
+</style>
+
+<link rel="stylesheet" href="faded.css" type="text/css" />
+
+</head>
+
+<body>
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+code {
+  color: inherit;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+img {
+  max-width:100%;
+  height: auto;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+</style>
+
+
+<style type="text/css">
+/* padding for bootstrap navbar */
+body {
+  padding-top: 51px;
+  padding-bottom: 40px;
+}
+/* offset scroll position for anchor links (for fixed navbar)  */
+.section h1 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+
+.section h2 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h3 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h4 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h5 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+.section h6 {
+  padding-top: 56px;
+  margin-top: -56px;
+}
+</style>
+
+<script>
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark it active
+  menuAnchor.parent().addClass('active');
+
+  // if it's got a parent navbar menu mark it active as well
+  menuAnchor.closest('li.dropdown').addClass('active');
+});
+</script>
+
+
+<div class="container-fluid main-container">
+
+<!-- tabsets -->
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+</script>
+
+<!-- code folding -->
+
+
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">Harrison's website</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="about.html">About Me</a>
+</li>
+<li>
+  <a href="simulations.html">Sims</a>
+</li>
+<li>
+  <a href="ML.html">ML</a>
+</li>
+<li>
+  <a href="GLM.html">GLM</a>
+</li>
+<li>
+  <a href="certificates.html">certificates</a>
+</li>
+<li>
+  <a href="topology.html">Baire Space</a>
+</li>
+<li>
+  <a href="KDE.html">KDE</a>
+</li>
+<li>
+  <a href="https://docs.google.com/document/d/e/2PACX-1vTnpiuuxd0-ia3SMAk1SGusAyLyvwPN-wsl_dQCIC6Nglj0WgyTne0nYS1JISZZI6H-ym631b9B0kr0/pub">Novella</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div class="fluid-row" id="header">
+
+
+
+<h1 class="title toc-ignore">ML</h1>
+<h4 class="author"><em>Harrison Tietze</em></h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#regression-models"><span class="toc-section-number">1</span> Regression Models</a><ul>
+<li><a href="#glmnet"><span class="toc-section-number">1.1</span> glmnet</a></li>
+<li><a href="#ridge-regression"><span class="toc-section-number">1.2</span> Ridge Regression</a></li>
+<li><a href="#the-lasso"><span class="toc-section-number">1.3</span> The Lasso</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="regression-models" class="section level1">
+<h1><span class="header-section-number">1</span> Regression Models</h1>
+<div id="glmnet" class="section level2">
+<h2><span class="header-section-number">1.1</span> glmnet</h2>
+<p>In this analysis we will work with the “College” dataset, which contains 777 observations with 18 variables. The goals is to predict how many applications a college will recieve “Apps” based off other predictors.</p>
+<p>First examine the structure of the dataset:</p>
+<pre class="r"><code>str(College)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    777 obs. of  18 variables:
+##  $ Private    : Factor w/ 2 levels &quot;No&quot;,&quot;Yes&quot;: 2 2 2 2 2 2 2 2 2 2 ...
+##  $ Apps       : num  1660 2186 1428 417 193 ...
+##  $ Accept     : num  1232 1924 1097 349 146 ...
+##  $ Enroll     : num  721 512 336 137 55 158 103 489 227 172 ...
+##  $ Top10perc  : num  23 16 22 60 16 38 17 37 30 21 ...
+##  $ Top25perc  : num  52 29 50 89 44 62 45 68 63 44 ...
+##  $ F.Undergrad: num  2885 2683 1036 510 249 ...
+##  $ P.Undergrad: num  537 1227 99 63 869 ...
+##  $ Outstate   : num  7440 12280 11250 12960 7560 ...
+##  $ Room.Board : num  3300 6450 3750 5450 4120 ...
+##  $ Books      : num  450 750 400 450 800 500 500 450 300 660 ...
+##  $ Personal   : num  2200 1500 1165 875 1500 ...
+##  $ PhD        : num  70 29 53 92 76 67 90 89 79 40 ...
+##  $ Terminal   : num  78 30 66 97 72 73 93 100 84 41 ...
+##  $ S.F.Ratio  : num  18.1 12.2 12.9 7.7 11.9 9.4 11.5 13.7 11.3 11.5 ...
+##  $ perc.alumni: num  12 16 30 37 2 11 26 37 23 15 ...
+##  $ Expend     : num  7041 10527 8735 19016 10922 ...
+##  $ Grad.Rate  : num  60 56 54 59 15 55 63 73 80 52 ...</code></pre>
+<p>The variables are numeric, except for the factor: Private. Let’s build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.</p>
+<pre class="r"><code>X = model.matrix(Apps ~ ., data = College)
+Y = College$Apps</code></pre>
+<p>Since we will be testing the performance of multiple models, we need to split the data into a test and training set.</p>
+<pre class="r"><code>train &lt;- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
+X.train &lt;- X[train, ]
+Y.train &lt;- Y[train]</code></pre>
+<p>Let’s fit a least-squares regression, which can be done using glmnet and no further arguments:</p>
+<pre class="r"><code>OLS.mod &lt;- glmnet(X.train, Y.train)</code></pre>
+<p>The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
+</div>
+<div id="ridge-regression" class="section level2">
+<h2><span class="header-section-number">1.2</span> Ridge Regression</h2>
+<p>Ridge regression fits a linear model by minimizing the quanitity <span class="math inline">\(RSS + \lambda \sum_{j=1}^p\beta_j^2\)</span>, where <span class="math inline">\(\lambda \sum_{j=1}^p\beta_j^2\)</span> also written <span class="math inline">\(\lambda||\beta||^2\)</span> is called a <em>shrinkage penalty</em> and <span class="math inline">\(\lambda \geq 0\)</span> is called a <em>tuning parameter</em>. At the extremes, <span class="math inline">\(\lambda = 0\)</span> returns the least-squares estimate, and <span class="math inline">\(\lambda \rightarrow \infty\)</span> returns the <em>null model</em>, where all the predictors are forced to <span class="math inline">\(0\)</span>. Note, that shrinkage is not applied to the intercept. Instead we first center the inputs and then estmiate <span class="math inline">\(\beta_0\)</span> by <span class="math inline">\(\overline{y}\)</span>. Centering is also necessary because unlike in OLS, the scale of the predictors can influence the estimate. Centering predictors is done by dividing by their standard deviation: <span class="math inline">\(\tilde{x_{ij}} = \frac{x_{ij}}{\sqrt{\sum_{i=1}^N(x_{ij}-\overline{x_j})^2}}\)</span>. The <span class="math inline">\(\tilde{x_{ij}}\)</span> are called <em>standardized predictors</em> and are used to compute <em>standardized coefficients</em>.</p>
+<p>Unlike the least squares estimate which produces only one set of coefficients, ridge regression computes a <em>path</em> of coefficients <span class="math inline">\(\beta^R_{\lambda}\)</span> which is a <span class="math inline">\(p-\)</span>dimensional sequence indexed by <span class="math inline">\(\lambda\)</span>. Cross validation must be used the to select the <span class="math inline">\(\lambda\)</span> such that <span class="math inline">\(\beta^R_{\lambda}\)</span> minimizes the out-of-sample error.</p>
+<p>Let’s fit a ridge regression. Also, we can manually specify a grid of values for <span class="math inline">\(\lambda\)</span>:</p>
+<pre class="r"><code>grid &lt;- 10^ seq (10,-2, length =100)
+ridge.mod &lt;- glmnet(X, Y, alpha = 0, lambda = grid)  
+
+# alpha = 0 specifies that we are using a Ridge Regression.
+# glmnet automatically does centering first; Standardize = TRUE by default</code></pre>
+<p>The glmnet object has several useful accessor methods that return information about the model. <code>coef</code> returns a matrix of coefficients. There are 19 rows, one for each coefficient, and 100 columns corresponding to different lambda values.</p>
+<pre class="r"><code>dim(coef(ridge.mod))</code></pre>
+<pre><code>## [1]  19 100</code></pre>
+<p>The <code>lambda</code> attribute returns the lambda values we generated. Let’s looks at the coefficients calculated for the 10th, 50th, and 90th lambda.</p>
+<pre class="r"><code>el2norm &lt;- function(x){sqrt(sum(x^2))}
+
+el2norm.r &lt;- function(col){el2norm(coef(ridge.mod)[, col])}
+
+coef(ridge.mod)[,c(10,50,90)] %&gt;% rbind( map_dbl(c(10,50,90), el2norm.r) ) %&gt;% rbind(ridge.mod$lambda[c(10,50,90)])</code></pre>
+<pre><code>## 21 x 3 sparse Matrix of class &quot;dgCMatrix&quot;
+##                        s9           s49           s89
+## (Intercept)  3.001460e+03 -1.458263e+03 -450.12509864
+## (Intercept)  .             .               .         
+## PrivateYes  -1.789027e-02 -4.648071e+02 -494.38698125
+## Accept       7.103069e-06  2.489066e-01    1.58314568
+## Enroll       1.681834e-05  5.134601e-01   -0.86900691
+## Top10perc    3.544599e-04  9.530257e+00   49.79963953
+## Top25perc    3.276538e-04  7.841425e+00  -14.15596655
+## F.Undergrad  3.098810e-06  9.162011e-02    0.05640780
+## P.Undergrad  4.827473e-06  1.103401e-01    0.04442850
+## Outstate     2.300851e-07  7.305875e-03   -0.08570968
+## Room.Board   2.775406e-06  9.438862e-02    0.15145333
+## Books        1.481607e-05  3.409711e-01    0.02115933
+## Personal     4.871357e-06  9.181531e-02    0.03090023
+## PhD          4.415587e-04  8.323631e+00   -8.66418687
+## Terminal     4.631391e-04  8.360791e+00   -3.33962422
+## S.F.Ratio    4.458416e-04  1.112056e+01   15.39869024
+## perc.alumni -1.343654e-04 -5.211799e+00    0.13310284
+## Expend       9.174057e-07  2.860713e-02    0.07795514
+## Grad.Rate    1.576579e-04  5.769915e+00    8.68071987
+##              3.001460e+03  1.530703e+03  670.90498961
+##              8.111308e+08  1.149757e+04    0.16297508</code></pre>
+<p>The last two rows are the <em>l-2-norm</em> and the <span class="math inline">\(\lambda\)</span> value. We can see that for <span class="math inline">\(\lambda = .16\)</span> we have the highest shrinkage of the coefficients</p>
+<p>We can also use the <code>predict</code> method to estimate coefficients at a new value of <span class="math inline">\(\lambda\)</span>, say <span class="math inline">\(\lambda = 80\)</span></p>
+<pre class="r"><code>predict(ridge.mod, s=80, type=&quot;coefficients&quot;)</code></pre>
+<pre><code>## 19 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                         1
+## (Intercept) -842.54145642
+## (Intercept)    .         
+## PrivateYes  -511.92401570
+## Accept         1.36629641
+## Enroll        -0.22883111
+## Top10perc     39.62013832
+## Top25perc     -7.76407057
+## F.Undergrad    0.03611710
+## P.Undergrad    0.03576975
+## Outstate      -0.06314725
+## Room.Board     0.17405745
+## Books          0.05510074
+## Personal       0.01487869
+## PhD           -7.06756018
+## Terminal      -4.38993870
+## S.F.Ratio     15.11353972
+## perc.alumni   -3.52229120
+## Expend         0.07919428
+## Grad.Rate      9.62239114</code></pre>
+<p>Let’s also look a the <code>%Dev</code> column when we print our model directly.</p>
+<pre class="r"><code># print(ridge.mod)   output is too long</code></pre>
+<p><code>%Dev</code> is the <em>Null Deviance</em> of the model. If the <em>Null Deviance</em> is very small, it signifies that the proposed model does not perform better than the null model. We can see that when lambda is very high, the <code>%Dev</code> is almost 0, but increases as lambda decreases, and the penalty on the coefficients is relaxed.</p>
+<p>Rather than supplying a pre-defined grid, we can use cross-validation to select the best lambda. The function <code>cv.glmnet</code> not only fits 100 models, but it tells us which one is the best.</p>
+<pre class="r"><code>set.seed(10)
+
+ridge.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 0)
+
+pred &lt;- predict(ridge.cv, s=&quot;lambda.min&quot;, newx = X[-train, ]) 
+
+MSE &lt;- function(x, y){sqrt(sum((x-y)^2))/length(x)}
+
+ridge.MSE &lt;- MSE(pred, Y[-train])
+
+bestlam &lt;- ridge.cv$lambda.min</code></pre>
+<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 486.043 and its corresponding estimate of the test error is 44.552. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 2772.3.</p>
+</div>
+<div id="the-lasso" class="section level2">
+<h2><span class="header-section-number">1.3</span> The Lasso</h2>
+<p>The Lasso is similar to ridge regression, except that the penalty is applied to the <em>l-1-norm</em> norm of the coeffiecients: <span class="math inline">\(||\beta||_1\)</span>. That is, the lasso selects the best model by minimizing the quantity <span class="math inline">\(RSS + \lambda\sum_{j=1}^p|\beta_j|\)</span>. Unlike Ridge regression, however, the lasso shrinks some of the coefficients to zero, and thus performs <em>variable selection</em>. The advantage of the lasso is that it yields <em>sparse</em> models with less coefficients are easier to interperet.</p>
+<pre class="r"><code>lasso.mod &lt;- glmnet(X, Y, alpha = 1, lambda = grid)
+
+lasso.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 1)
+
+bestlam &lt;- lasso.cv$lambda.min
+
+coef(lasso.cv, s = &quot;lambda.min&quot;)</code></pre>
+<pre><code>## 19 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+##                         1
+## (Intercept) -1.259092e+03
+## (Intercept)  .           
+## PrivateYes  -7.735398e+02
+## Accept       1.898861e+00
+## Enroll      -1.409453e+00
+## Top10perc    6.530887e+01
+## Top25perc   -1.991370e+01
+## F.Undergrad  .           
+## P.Undergrad  1.012061e-01
+## Outstate    -1.342958e-01
+## Room.Board   2.685679e-01
+## Books       -8.393839e-02
+## Personal     1.575348e-01
+## PhD         -1.639930e+01
+## Terminal    -3.422544e+00
+## S.F.Ratio    6.065611e+01
+## perc.alumni  9.979181e+00
+## Expend       1.131962e-01
+## Grad.Rate    1.164772e+01</code></pre>
+<p>We can see that some of the variables have been dropped.</p>
+</div>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

@@ -7,8 +7,10 @@ navbar:
       href: index.html
     - text: "About Me"
       href: about.html
-    - text: "simulations"
+    - text: "Sims"
       href: simulations.html
+    - text: "ML"
+      href: ML.html
     - text: "GLM"
       href: GLM.html
     - text: "certificates"

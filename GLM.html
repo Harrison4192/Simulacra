@@ -183,7 +183,10 @@ $(document).ready(function () {
   <a href="about.html">About Me</a>
 </li>
 <li>
-  <a href="simulations.html">simulations</a>
+  <a href="simulations.html">Sims</a>
+</li>
+<li>
+  <a href="ML.html">ML</a>
 </li>
 <li>
   <a href="GLM.html">GLM</a>
@@ -226,6 +229,11 @@ General Linear Models
 <li><a href="#comparing-r-r_s-and-tau"><span class="toc-section-number">1.2</span> Comparing <span class="math inline">\(r\)</span>, <span class="math inline">\(r_s\)</span>, and <span class="math inline">\(\tau\)</span></a></li>
 <li><a href="#r-is-positive-but-r_s-and-tau-are-negative"><span class="toc-section-number">1.3</span> <span class="math inline">\(r\)</span> is positive but <span class="math inline">\(r_s\)</span> and <span class="math inline">\(\tau\)</span> are negative</a></li>
 <li><a href="#construct-a-distribution-where-r_s-is-negative-but-tau-is-positive"><span class="toc-section-number">1.4</span> Construct a distribution where <span class="math inline">\(r_s\)</span> is negative but <span class="math inline">\(\tau\)</span> is positive</a></li>
+</ul></li>
+<li><a href="#implementing-glms"><span class="toc-section-number">2</span> Implementing GLM’s</a><ul>
+<li><a href="#specifying-the-glm-in-r"><span class="toc-section-number">2.1</span> Specifying the GLM in R</a></li>
+<li><a href="#specifying-the-link-function"><span class="toc-section-number">2.2</span> Specifying the Link Function</a></li>
+<li><a href="#specifying-your-own-link-function"><span class="toc-section-number">2.3</span> Specifying your own link function</a></li>
 </ul></li>
 </ul>
 </div>
@@ -417,6 +425,101 @@ cor(x1, x2, method = &quot;spearman&quot;)</code></pre>
 <pre class="r"><code>plot(x1,x2)</code></pre>
 <p><img src="GLM_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
 <p>We can see that Spearman’s correlation is negative because of the weight of <span class="math inline">\(\sum d_i^2 = (80-1)^2 + (79-2)^2 + ...\)</span> is very large. Kendall’s tau is not sensitive to this fact, and shows a positive correlation because of the many concordant pairs in the middle of the distribution.</p>
+</div>
+</div>
+<div id="implementing-glms" class="section level1">
+<h1><span class="header-section-number">2</span> Implementing GLM’s</h1>
+<div id="specifying-the-glm-in-r" class="section level2">
+<h2><span class="header-section-number">2.1</span> Specifying the GLM in R</h2>
+<p>Models in <code>R</code> can be specified using a compact formula syntax <code>y ~ model</code> where <code>y</code> is the response variable we want to measure and <code>model</code> specifies the formula we fit to the data. Consider a regression model where we want to predict <code>y</code> from <span class="math inline">\(p\)</span> predictors: <span class="math inline">\(x_1, ..., x_p\)</span>. Different operators will specify how we include these predictors as terms in the model:</p>
+<ul>
+<li><code>+</code> <code>x_1 + x_2</code> indicates a linear combination of the variables</li>
+<li><code>:</code> <code>x_1:x_2</code> includes the interaction term <span class="math inline">\(x_1x_2\)</span> in the model</li>
+<li><code>*</code> <code>x_1 * x_2</code> denotes a factor crossing: <span class="math inline">\(x_1 + x_2 +x_1x_2\)</span></li>
+<li><code>^</code> <code>(x_1 + x_2 + x_3)^2</code> expands to a formula including the main effects of <span class="math inline">\(x_1, x_2, x_3\)</span> and their second order interation terms</li>
+<li><code>-</code> <code>-1</code> removes the intercept term</li>
+<li><code>I</code> <code>I(x_1^2)</code> inhibits the conversion to <code>x_1*x_1</code> which reduces to <code>x_1</code> since formulas remove reduntant terms. Using <code>I</code> properly introduces the term <span class="math inline">\(x_1^2\)</span> to the formula</li>
+</ul>
+<p>To fit a general linear model in <code>R</code>, we use the <code>glm</code> function and supply the model formula to the <code>formula</code> argument. The family name such, as binomial, gaussian, or poisson, can be supplied to the family argument as a family object. The default link is used unless an alternative is specified within the family object. For example, <code>glm(formula, family=binomial(link=probit))</code> uses the probit link function.</p>
+</div>
+<div id="specifying-the-link-function" class="section level2">
+<h2><span class="header-section-number">2.2</span> Specifying the Link Function</h2>
+<p>Consider a dataset which includes two observations:</p>
+<p><img src="table2.png"></p>
+<pre class="r"><code>df &lt;- data.frame(Y = c(1,4),
+                 X = 1:2) </code></pre>
+<p>Let’s assume the linear model is <span class="math inline">\(\eta=\beta c\)</span> and the family is gaussian. We can estimate the coefficients <span class="math inline">\(\beta\)</span> using different link functions. Here we write a function that generates models from this data using different links. A table of the coefficients of each model is provided below.</p>
+<pre class="r"><code>glm.mod &lt;- function(.link){
+  glm(formula = Y ~ ., family = gaussian(link = .link), data = df)
+}
+
+links &lt;- c(&quot;identity&quot;,&quot;log&quot;,&quot;inverse&quot;)
+
+model.list &lt;- map(links, glm.mod)
+
+coef.list &lt;- map(model.list, coef) %&gt;% as.data.frame()
+
+names(coef.list) &lt;- links
+
+row.names(coef.list) &lt;- c(&quot;Intercept&quot;, &#39;X&#39;)
+
+
+knitr::kable(coef.list, row.names = TRUE, caption = &quot;Coeffecients for each of 3 fitted models&quot;)</code></pre>
+<table>
+<caption>Coeffecients for each of 3 fitted models</caption>
+<thead>
+<tr class="header">
+<th></th>
+<th align="right">identity</th>
+<th align="right">log</th>
+<th align="right">inverse</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Intercept</td>
+<td align="right">-2</td>
+<td align="right">-1.386294</td>
+<td align="right">1.75</td>
+</tr>
+<tr class="even">
+<td>X</td>
+<td align="right">3</td>
+<td align="right">1.386294</td>
+<td align="right">-0.75</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="specifying-your-own-link-function" class="section level2">
+<h2><span class="header-section-number">2.3</span> Specifying your own link function</h2>
+<pre class="r"><code>explink &lt;- function()
+{
+    linkfun &lt;- function(mu) exp(mu)
+    linkinv &lt;- function(eta) log(eta)
+    mu.eta &lt;- function(eta) 1/eta
+    valideta &lt;- function(eta) TRUE
+    link &lt;- &quot;exponential&quot;
+    structure(list(linkfun = linkfun, linkinv = linkinv,
+                   mu.eta = mu.eta, valideta = valideta, name = link),
+              class = &quot;link-glm&quot;)
+}
+
+explink.mod &lt;- glm(Y ~ X - 1, family=gaussian(link=explink()), data = df)
+explink.mod</code></pre>
+<pre><code>## 
+## Call:  glm(formula = Y ~ X - 1, family = gaussian(link = explink()), 
+##     data = df)
+## 
+## Coefficients:
+##     X  
+## 8.614  
+## 
+## Degrees of Freedom: 2 Total (i.e. Null);  1 Residual
+## Null Deviance:       Inf 
+## Residual Deviance: 2.661     AIC: 10.25</code></pre>
+<pre class="r"><code>beta.mod &lt;- coef(explink.mod)</code></pre>
+<p>Using this link our estimate of <span class="math inline">\(\beta\)</span> is 8.6143241.</p>
 </div>
 </div>
 

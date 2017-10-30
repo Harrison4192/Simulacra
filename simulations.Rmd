@@ -612,7 +612,7 @@ We will implement the Gibb's sampler to simulate the following density:
 $$\pi(x, p, n) \propto \binom{n}{x} p^x(1-p)^{n-x}\frac{4^n}{n!}$$
 where $x, n \in \mathbb{Z}_{\geq0}$ and $p\in (0,1)$ To identify the conditional distributions, hold the two other variable constant, and we see that$$X| N=n, P=p \propto \text{binomial}(n, p)$$ $$P|X = x, N= n \propto \text{beta}(x+1, n-x+1)$$
 $$N|P=p, X=x \propto Z + x \text{ where } Z\sim \text{poisson}(\lambda = 4(1-p))$$
-```{r}
+```{r message= FALSE}
 N <- 10^3
 sim <- matrix(rep(0,3*N),ncol=3)
 
@@ -626,18 +626,22 @@ for(i in 2:N){
   sim[i,3] <- rpois(1,4*(1-sim[i,2]))+sim[i,1] 
 }
 
+#plot marginal distributions
 gibbs_sample <- data.frame(x = sim[, 1],
                            p = sim[, 2],
                            n = sim[, 3])
 
 
+marginals <- list(NULL, NULL, NULL)
 
+chart <- function(var){
+  ggplot(data = gibbs_sample, aes_(x = var)) + geom_histogram(color = "violet")
+}
 
-marginals <- list(qplot(gibbs_sample$x, geom="histogram", bins = 50, color = I("violet")),
-                  qplot(gibbs_sample$p, geom="histogram", bins = 30, color = I("violet")),
-                  qplot(gibbs_sample$n, geom="histogram", bins = 50, color = I("violet"))
-)
-
+#note: the input to chart is a name, not a string
+for(i in 1:3){
+  marginals[[i]] <-  chart(as.name(names(gibbs_sample)[i]))
+}
 
 grid.arrange(marginals[[1]], marginals[[2]], marginals[[3]], ncol = 3, top = "Marginal Distributions")
 

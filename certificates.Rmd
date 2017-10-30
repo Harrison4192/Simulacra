@@ -3,8 +3,19 @@ title: "certificates"
 output: 
   html_document
 ---
+<img src="Certificates/datacamp.png" width="300" height="200">
 
 <embed src="Certificates/Rmarkdown.pdf" width="300" height="250" type='application/pdf'>
+
 <embed src="Certificates/certificate (1).pdf" width="300" height="250" type='application/pdf'>
+
 <embed src="Certificates/certificate.pdf" width="300" height="250" type='application/pdf'>
+
 <embed src="Certificates/writingfunctionsR.pdf" width="300" height="250" type='application/pdf'>
+
+<embed src="Certificates/machineLearningToolbox.pdf" width="300" height="250" type='application/pdf'>
+
+<img src="Certificates/udacity.png" width="300" height="200">
+
+<img src="Certificates/VCwithGit.png" width="300" height="250">
+<img src="Certificates/linuxCLI.png" width="300" height="250">

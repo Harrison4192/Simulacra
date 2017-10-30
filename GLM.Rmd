@@ -137,3 +137,74 @@ plot(x1,x2)
 ```
 
 We can see that Spearman's correlation is negative because of the weight of $\sum d_i^2 = (80-1)^2 + (79-2)^2 + ...$ is very large. Kendall's tau is not sensitive to this fact, and shows a positive correlation because of the many concordant pairs in the middle of the distribution. 
+
+#Implementing GLM's
+
+##Specifying the GLM in R
+
+Models in `R` can be specified using a compact formula syntax `y ~ model` where `y` is the response variable we want to measure and `model` specifies the formula we fit to the data. Consider a regression model where we want to predict `y` from $p$ predictors: $x_1, ..., x_p$. Different operators will specify how we include these predictors as terms in the model:
+
+* `+`   `x_1 + x_2` indicates a linear combination of the variables
+* `:`   `x_1:x_2` includes the interaction term $x_1x_2$ in the model
+* `*`   `x_1 * x_2` denotes a factor crossing: $x_1 + x_2 +x_1x_2$
+* `^`   `(x_1 + x_2 + x_3)^2` expands to a formula including the main effects of $x_1, x_2, x_3$ and their second order interation terms
+* `-`   `-1` removes the intercept term
+* `I`   `I(x_1^2)` inhibits the conversion to `x_1*x_1` which reduces to `x_1` since formulas remove reduntant terms. Using `I` properly introduces the term $x_1^2$ to the formula
+
+
+To fit a general linear model in `R`, we use the `glm` function and supply the model formula to the `formula` argument. The family name such, as binomial, gaussian, or poisson, can be supplied to the family argument as a family object. The default link is used unless an alternative is specified within the family object. For example, `glm(formula, family=binomial(link=probit))` uses the probit link function.
+
+## Specifying the Link Function
+
+Consider a dataset which includes two observations:
+
+<img src="table2.png">
+```{r}
+df <- data.frame(Y = c(1,4),
+                 X = 1:2) 
+```
+
+Let's assume the linear model is $\eta=\beta c$ and the family is gaussian. We can estimate the coefficients $\beta$ using different link functions. Here we write a function that generates models from this data using different links. A table of the coefficients of each model is provided below. 
+
+```{r}
+glm.mod <- function(.link){
+  glm(formula = Y ~ ., family = gaussian(link = .link), data = df)
+}
+
+links <- c("identity","log","inverse")
+
+model.list <- map(links, glm.mod)
+
+coef.list <- map(model.list, coef) %>% as.data.frame()
+
+names(coef.list) <- links
+
+row.names(coef.list) <- c("Intercept", 'X')
+
+
+knitr::kable(coef.list, row.names = TRUE, caption = "Coeffecients for each of 3 fitted models")
+```
+
+##Specifying your own link function
+
+```{r}
+explink <- function()
+{
+    linkfun <- function(mu) exp(mu)
+    linkinv <- function(eta) log(eta)
+    mu.eta <- function(eta) 1/eta
+    valideta <- function(eta) TRUE
+    link <- "exponential"
+    structure(list(linkfun = linkfun, linkinv = linkinv,
+                   mu.eta = mu.eta, valideta = valideta, name = link),
+              class = "link-glm")
+}
+
+explink.mod <- glm(Y ~ X - 1, family=gaussian(link=explink()), data = df)
+explink.mod
+
+beta.mod <- coef(explink.mod)
+```
+
+Using this link our estimate of $\beta$ is `r beta.mod`. 
+
