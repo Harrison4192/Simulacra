@@ -12,3 +12,7 @@ foreach
 glmnet
 magrittr
 pls
+lattice
+caret
+lars
+elasticnet

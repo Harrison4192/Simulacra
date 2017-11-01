@@ -230,6 +230,7 @@ $(document).ready(function () {
 <li><a href="#principle-components-regression"><span class="toc-section-number">1.4</span> Principle Components Regression</a></li>
 <li><a href="#partial-least-squares"><span class="toc-section-number">1.5</span> Partial Least Squares</a></li>
 </ul></li>
+<li><a href="#simplifying-with-caret"><span class="toc-section-number">2</span> Simplifying with Caret</a></li>
 </ul>
 </div>
 
@@ -592,6 +593,76 @@ knitr::kable(results, digits = 3)</code></pre>
 </table>
 <p>Since PLS supervises the choice of components, it can be more effective than PCR for a regression problem when using less components. Notice how the RMSE at 1 component is alsmost 3 times that for PCR than PLS, but it becomes about equal for the inclusion of more components.</p>
 </div>
+</div>
+<div id="simplifying-with-caret" class="section level1">
+<h1><span class="header-section-number">2</span> Simplifying with Caret</h1>
+<p>In this section, I write a function using caret to train all the models at once. Each model’s parameters is optimized by cross validation automatically, as specified in the trainControl function.</p>
+<pre class="r"><code>library(caret)
+
+caret_RMSE &lt;- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
+
+trainControl &lt;- trainControl(method=&quot;cv&quot;, number=5)
+
+
+  my_caret &lt;- function(method_name){ 
+    #this function accepts the name of the method and returns its RMSE from testing it on our specified College dataset
+  
+  method_fit &lt;- train(Apps~., data=data_df, method=method_name, metric=&quot;RMSE&quot;, preProc=c(&quot;center&quot;,&quot;scale&quot;), trControl=trainControl)
+  
+  method_predictions &lt;- predict(method_fit, X.test)
+  
+  method_RMSE &lt;- caret_RMSE(method_predictions)
+  
+  list(method_name, method_RMSE)
+  }
+  
+caret_names &lt;- list(&quot;lm&quot;, &quot;lasso&quot;, &quot;ridge&quot;, &quot;glmnet&quot;, &quot;pcr&quot;, &quot;pls&quot;)</code></pre>
+<p>Now I write a short pipeline to run the <code>my_caret</code> function on the list of method names and display the results in a nice table.</p>
+<pre class="r"><code>map(caret_names, my_caret) %&gt;%
+  transpose() %&gt;% 
+  map(unlist) %&gt;% 
+  set_names(c(&quot;models&quot;,&quot;RMSE&quot;)) %&gt;% 
+  as_tibble() %&gt;%
+  arrange(RMSE)-&gt; 
+  caret_table
+
+knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = &quot;Result produced by Caret. Models arranged by RMSE.&quot;)</code></pre>
+<table>
+<caption>Result produced by Caret. Models arranged by RMSE.</caption>
+<thead>
+<tr class="header">
+<th align="left">models</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">lasso</td>
+<td align="right">40.884</td>
+</tr>
+<tr class="even">
+<td align="left">glmnet</td>
+<td align="right">40.895</td>
+</tr>
+<tr class="odd">
+<td align="left">lm</td>
+<td align="right">40.956</td>
+</tr>
+<tr class="even">
+<td align="left">ridge</td>
+<td align="right">40.956</td>
+</tr>
+<tr class="odd">
+<td align="left">pls</td>
+<td align="right">47.444</td>
+</tr>
+<tr class="even">
+<td align="left">pcr</td>
+<td align="right">70.510</td>
+</tr>
+</tbody>
+</table>
+<p>The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods.</p>
 </div>
 
 

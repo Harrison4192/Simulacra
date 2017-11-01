@@ -229,3 +229,46 @@ knitr::kable(results, digits = 3)
 ```
 
 Since PLS supervises the choice of components, it can be more effective than PCR for a regression problem when using less components. Notice how the RMSE at 1 component is alsmost 3 times that for PCR than PLS, but it becomes about equal for the inclusion of more components.  
+
+#Simplifying with Caret
+
+In this section, I write a function using caret to train all the models at once. Each model's parameters is optimized by cross validation automatically, as specified in the trainControl function. 
+
+```{r message = FALSE}
+library(caret)
+
+caret_RMSE <- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
+
+trainControl <- trainControl(method="cv", number=5)
+
+
+  my_caret <- function(method_name){ 
+    #this function accepts the name of the method and returns its RMSE from testing it on our specified College dataset
+  
+  method_fit <- train(Apps~., data=data_df, method=method_name, metric="RMSE", preProc=c("center","scale"), trControl=trainControl)
+  
+  method_predictions <- predict(method_fit, X.test)
+  
+  method_RMSE <- caret_RMSE(method_predictions)
+  
+  list(method_name, method_RMSE)
+  }
+  
+caret_names <- list("lm", "lasso", "ridge", "glmnet", "pcr", "pls")
+```
+
+Now I write a short pipeline to run the `my_caret` function on the list of method names and display the results in a nice table.  
+
+```{r}
+map(caret_names, my_caret) %>%
+  transpose() %>% 
+  map(unlist) %>% 
+  set_names(c("models","RMSE")) %>% 
+  as_tibble() %>%
+  arrange(RMSE)-> 
+  caret_table
+
+knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = "Result produced by Caret. Models arranged by RMSE.")
+```
+
+The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods. 
