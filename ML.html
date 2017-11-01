@@ -227,6 +227,8 @@ $(document).ready(function () {
 <li><a href="#glmnet"><span class="toc-section-number">1.1</span> glmnet</a></li>
 <li><a href="#ridge-regression"><span class="toc-section-number">1.2</span> Ridge Regression</a></li>
 <li><a href="#the-lasso"><span class="toc-section-number">1.3</span> The Lasso</a></li>
+<li><a href="#principle-components-regression"><span class="toc-section-number">1.4</span> Principle Components Regression</a></li>
+<li><a href="#partial-least-squares"><span class="toc-section-number">1.5</span> Partial Least Squares</a></li>
 </ul></li>
 </ul>
 </div>
@@ -259,14 +261,48 @@ $(document).ready(function () {
 ##  $ Grad.Rate  : num  60 56 54 59 15 55 63 73 80 52 ...</code></pre>
 <p>The variables are numeric, except for the factor: Private. Let’s build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.</p>
 <pre class="r"><code>X = model.matrix(Apps ~ ., data = College)
-Y = College$Apps</code></pre>
+Y = College$Apps
+
+data_df &lt;- cbind(as.data.frame(X), College[, &quot;Apps&quot;]) %&gt;% rename(Apps = `College[, &quot;Apps&quot;]`)</code></pre>
 <p>Since we will be testing the performance of multiple models, we need to split the data into a test and training set.</p>
 <pre class="r"><code>train &lt;- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
 X.train &lt;- X[train, ]
-Y.train &lt;- Y[train]</code></pre>
-<p>Let’s fit a least-squares regression, which can be done using glmnet and no further arguments:</p>
-<pre class="r"><code>OLS.mod &lt;- glmnet(X.train, Y.train)</code></pre>
-<p>The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
+Y.train &lt;- Y[train]
+
+X.test &lt;- X[-train, ]
+Y.test &lt;- Y[-train]</code></pre>
+<p>Let’s fit a least-squares regression, which can be done using glmnet and no further arguments. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
+<pre class="r"><code>OLS.mod &lt;- glmnet(X.train, Y.train)
+
+OLS.pred &lt;- predict(OLS.mod, newx = X.test)
+
+RMSE &lt;- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
+
+Percent.Error &lt;- function(x){RMSE(x)/mean(Y) * 100}
+
+OLS.RMSE &lt;- RMSE(OLS.pred)
+OLS.Percent.Err &lt;- Percent.Error(OLS.pred)
+
+results &lt;- tibble(model = &quot;OLS&quot;,
+                  RMSE = OLS.RMSE,
+                  )
+
+knitr::kable(results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">OLS</td>
+<td align="right">6.595</td>
+</tr>
+</tbody>
+</table>
+<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 0.2197004%, we can infer our error is overall relatively small.</p>
 </div>
 <div id="ridge-regression" class="section level2">
 <h2><span class="header-section-number">1.2</span> Ridge Regression</h2>
@@ -274,7 +310,7 @@ Y.train &lt;- Y[train]</code></pre>
 <p>Unlike the least squares estimate which produces only one set of coefficients, ridge regression computes a <em>path</em> of coefficients <span class="math inline">\(\beta^R_{\lambda}\)</span> which is a <span class="math inline">\(p-\)</span>dimensional sequence indexed by <span class="math inline">\(\lambda\)</span>. Cross validation must be used the to select the <span class="math inline">\(\lambda\)</span> such that <span class="math inline">\(\beta^R_{\lambda}\)</span> minimizes the out-of-sample error.</p>
 <p>Let’s fit a ridge regression. Also, we can manually specify a grid of values for <span class="math inline">\(\lambda\)</span>:</p>
 <pre class="r"><code>grid &lt;- 10^ seq (10,-2, length =100)
-ridge.mod &lt;- glmnet(X, Y, alpha = 0, lambda = grid)  
+ridge.mod &lt;- glmnet(X.test, Y.test, alpha = 0, lambda = grid)  
 
 # alpha = 0 specifies that we are using a Ridge Regression.
 # glmnet automatically does centering first; Standardize = TRUE by default</code></pre>
@@ -342,47 +378,219 @@ coef(ridge.mod)[,c(10,50,90)] %&gt;% rbind( map_dbl(c(10,50,90), el2norm.r) ) %&
 
 ridge.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 0)
 
-pred &lt;- predict(ridge.cv, s=&quot;lambda.min&quot;, newx = X[-train, ]) 
+ridge.pred &lt;- predict(ridge.cv, s=&quot;lambda.min&quot;, newx = X.test) 
 
-MSE &lt;- function(x, y){sqrt(sum((x-y)^2))/length(x)}
 
-ridge.MSE &lt;- MSE(pred, Y[-train])
+ridge.RMSE &lt;- RMSE(ridge.pred)
+
 
 bestlam &lt;- ridge.cv$lambda.min</code></pre>
-<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 486.043 and its corresponding estimate of the test error is 44.552. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 2772.3.</p>
+<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 485.847 and its corresponding estimate of the test error is 44.633. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 1550.27.</p>
 </div>
 <div id="the-lasso" class="section level2">
 <h2><span class="header-section-number">1.3</span> The Lasso</h2>
 <p>The Lasso is similar to ridge regression, except that the penalty is applied to the <em>l-1-norm</em> norm of the coeffiecients: <span class="math inline">\(||\beta||_1\)</span>. That is, the lasso selects the best model by minimizing the quantity <span class="math inline">\(RSS + \lambda\sum_{j=1}^p|\beta_j|\)</span>. Unlike Ridge regression, however, the lasso shrinks some of the coefficients to zero, and thus performs <em>variable selection</em>. The advantage of the lasso is that it yields <em>sparse</em> models with less coefficients are easier to interperet.</p>
-<pre class="r"><code>lasso.mod &lt;- glmnet(X, Y, alpha = 1, lambda = grid)
+<pre class="r"><code>set.seed(1)
 
 lasso.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 1)
 
-bestlam &lt;- lasso.cv$lambda.min
+lasso.lam &lt;- lasso.cv$lambda.min
 
 coef(lasso.cv, s = &quot;lambda.min&quot;)</code></pre>
 <pre><code>## 19 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                         1
-## (Intercept) -1.259092e+03
-## (Intercept)  .           
-## PrivateYes  -7.735398e+02
-## Accept       1.898861e+00
-## Enroll      -1.409453e+00
-## Top10perc    6.530887e+01
-## Top25perc   -1.991370e+01
-## F.Undergrad  .           
-## P.Undergrad  1.012061e-01
-## Outstate    -1.342958e-01
-## Room.Board   2.685679e-01
-## Books       -8.393839e-02
-## Personal     1.575348e-01
-## PhD         -1.639930e+01
-## Terminal    -3.422544e+00
-## S.F.Ratio    6.065611e+01
-## perc.alumni  9.979181e+00
-## Expend       1.131962e-01
-## Grad.Rate    1.164772e+01</code></pre>
+## (Intercept)   69.34902528
+## (Intercept)    .         
+## PrivateYes  -595.64358292
+## Accept         1.86593908
+## Enroll        -0.34992361
+## Top10perc     57.22930932
+## Top25perc    -18.46259680
+## F.Undergrad   -0.18922923
+## P.Undergrad    0.06772948
+## Outstate      -0.15971823
+## Room.Board     0.05447433
+## Books         -0.45883492
+## Personal       0.13779185
+## PhD          -13.57517691
+## Terminal       0.79909250
+## S.F.Ratio      5.10482889
+## perc.alumni    4.09874698
+## Expend         0.14168984
+## Grad.Rate     12.80833938</code></pre>
+<pre class="r"><code>lasso.mod &lt;- glmnet(X.train, Y.train, alpha = 1, lambda = grid)
+
+lasso.pred &lt;- predict(lasso.mod, s=lasso.lam, newx = X.test)</code></pre>
 <p>We can see that some of the variables have been dropped.</p>
+<pre class="r"><code>lasso.RMSE &lt;- RMSE(lasso.pred)
+
+results &lt;- rbind(results, list(&quot;Ridge&quot;, ridge.RMSE), list(&quot;Lasso&quot;, lasso.RMSE))
+
+knitr::kable(results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">OLS</td>
+<td align="right">6.595</td>
+</tr>
+<tr class="even">
+<td align="left">Ridge</td>
+<td align="right">44.633</td>
+</tr>
+<tr class="odd">
+<td align="left">Lasso</td>
+<td align="right">49.003</td>
+</tr>
+</tbody>
+</table>
+<p>For some reason, the ridge and lasso perform substantially worse than the ordinary least squares model.</p>
+</div>
+<div id="principle-components-regression" class="section level2">
+<h2><span class="header-section-number">1.4</span> Principle Components Regression</h2>
+<pre class="r"><code>library(pls)
+set.seed(2)
+PCR.mod &lt;- pcr(Apps ~ ., subset = train, data = data_df,  validation = &quot;CV&quot;)
+
+validationplot(PCR.mod, val.type = &quot;MSEP&quot;)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>The validation plot compares the performance of PCR based off the number of components that are chosen. The MSEP axis is actually the RSME used to measure the training error. The error stabilizes around 5 or 6 components, and overall decreases monotonically as we include more components. Using all components would defeat the purpose of PCR and actually return the OLS solutions, where each variable is its own component.</p>
+<pre class="r"><code>summary(PCR.mod)</code></pre>
+<pre><code>## Data:    X dimension: 194 18 
+##  Y dimension: 194 1
+## Fit method: svdpc
+## Number of components considered: 18
+## 
+## VALIDATION: RMSEP
+## Cross-validated using 10 random segments.
+##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
+## CV            4686     4699     2764     2763     2798     2260     1541
+## adjCV         4686     4732     2747     2747     2807     2171     1515
+##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
+## CV        1511     1524     1558      1456      1438      1440      1468
+## adjCV     1489     1501     1532      1433      1415      1417      1443
+##        14 comps  15 comps  16 comps  17 comps  18 comps
+## CV         1475      1433      1440      1396       NaN
+## adjCV      1450      1408      1414      1372       NaN
+## 
+## TRAINING: % variance explained
+##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
+## X     47.7637    85.35    93.30    97.18    98.83    99.59    99.93
+## Apps   0.1278    73.09    73.84    79.71    93.85    93.97    93.99
+##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
+## X       99.97      100    100.00    100.00     100.0     100.0     100.0
+## Apps    93.99       94     94.59     94.78      94.8      94.8      94.8
+##       15 comps  16 comps  17 comps  18 comps
+## X       100.00    100.00    100.00       100
+## Apps     95.23     95.25     95.35       100</code></pre>
+<p>The summary which reveals the training error and variance explained per number of components included, further shows that including more than 6 components gives no benefit. However it may be best to use even less components to create a better model. Three components should work, since it explains 93% of the variance.</p>
+<pre class="r"><code>PCR.pred &lt;- predict(PCR.mod, X.test, ncomp = 3)
+PCR.RMSE &lt;- RMSE(PCR.pred)
+results &lt;- rbind(results,  list(&quot;PCR&quot;, PCR.RMSE))
+
+knitr::kable(results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">OLS</td>
+<td align="right">6.595</td>
+</tr>
+<tr class="even">
+<td align="left">Ridge</td>
+<td align="right">44.633</td>
+</tr>
+<tr class="odd">
+<td align="left">Lasso</td>
+<td align="right">49.003</td>
+</tr>
+<tr class="even">
+<td align="left">PCR</td>
+<td align="right">66.753</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="partial-least-squares" class="section level2">
+<h2><span class="header-section-number">1.5</span> Partial Least Squares</h2>
+<p>Partial least sqaures is a supervised alternative to principle components regression. PLS attempts to choose components that explain variance in both the predictors and response.</p>
+<pre class="r"><code>PLS.mod &lt;- plsr(Apps ~ ., data = data_df, subset = train, validation = &quot;CV&quot;)
+summary(PLS.mod)</code></pre>
+<pre><code>## Data:    X dimension: 194 18 
+##  Y dimension: 194 1
+## Fit method: kernelpls
+## Number of components considered: 18
+## 
+## VALIDATION: RMSEP
+## Cross-validated using 10 random segments.
+##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
+## CV            4686     2684     2550     2166     1748     1602     1581
+## adjCV         4686     2649     2365     2128     1719     1573     1554
+##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
+## CV        1604     1680     1693      1566      1611      1593      1555
+## adjCV     1575     1646     1651      1534      1574      1555      1520
+##        14 comps  15 comps  16 comps  17 comps  18 comps
+## CV         1547      1555      1564      1556      1556
+## adjCV      1513      1521      1529      1521      1521
+## 
+## TRAINING: % variance explained
+##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
+## X       37.56    47.72    88.66    95.05    98.82    99.56    99.92
+## Apps    75.75    87.97    90.26    93.04    93.97    93.99    94.00
+##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
+## X       99.97    99.97    100.00    100.00    100.00    100.00    100.00
+## Apps    94.04    94.63     94.81     94.97     95.23     95.24     95.24
+##       15 comps  16 comps  17 comps  18 comps
+## X       100.00    100.00    100.00    102.90
+## Apps     95.25     95.25     95.35     95.35</code></pre>
+<pre class="r"><code>validationplot(PLS.mod)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
+<p>We can see that 3 components explains about 93% of the variance and gives a low training RMSE. It’s better to keep the amount of components lowe to decrease the variance of the model, even if more components give slightly lower training RMSE.</p>
+<pre class="r"><code>PLS.pred &lt;- predict(PLS.mod, X.test, ncomp = 3)
+PLS.RMSE &lt;- RMSE(PLS.pred)
+results &lt;- rbind(results, list(&quot;PLS&quot;, PLS.RMSE))
+knitr::kable(results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">OLS</td>
+<td align="right">6.595</td>
+</tr>
+<tr class="even">
+<td align="left">Ridge</td>
+<td align="right">44.633</td>
+</tr>
+<tr class="odd">
+<td align="left">Lasso</td>
+<td align="right">49.003</td>
+</tr>
+<tr class="even">
+<td align="left">PCR</td>
+<td align="right">66.753</td>
+</tr>
+<tr class="odd">
+<td align="left">PLS</td>
+<td align="right">52.771</td>
+</tr>
+</tbody>
+</table>
+<p>Since PLS supervises the choice of components, it can be more effective than PCR for a regression problem when using less components. Notice how the RMSE at 1 component is alsmost 3 times that for PCR than PLS, but it becomes about equal for the inclusion of more components.</p>
 </div>
 </div>
 

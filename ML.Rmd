@@ -13,6 +13,7 @@ knitr::opts_chunk$set(cache = TRUE)
 library(ISLR)
 library(tidyverse)
 library(glmnet)
+library(magrittr)
 ```
 
 #Regression Models
@@ -33,6 +34,10 @@ The variables are numeric, except for the factor: Private. Let's build a model m
 ```{r}
 X = model.matrix(Apps ~ ., data = College)
 Y = College$Apps
+
+data_df <- cbind(as.data.frame(X), College[, "Apps"]) %>% rename(Apps = `College[, "Apps"]`)
+
+
 ```
 
 Since we will be testing the performance of multiple models, we need to split the data into a test and training set.
@@ -41,16 +46,36 @@ Since we will be testing the performance of multiple models, we need to split th
 train <- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
 X.train <- X[train, ]
 Y.train <- Y[train]
+
+X.test <- X[-train, ]
+Y.test <- Y[-train]
 ```
 
 
-Let's fit a least-squares regression, which can be done using glmnet and no further arguments:
+Let's fit a least-squares regression, which can be done using glmnet and no further arguments. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
 
 ```{r}
 OLS.mod <- glmnet(X.train, Y.train)
+
+OLS.pred <- predict(OLS.mod, newx = X.test)
+
+RMSE <- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
+
+Percent.Error <- function(x){RMSE(x)/mean(Y) * 100}
+
+OLS.RMSE <- RMSE(OLS.pred)
+OLS.Percent.Err <- Percent.Error(OLS.pred)
+
+results <- tibble(model = "OLS",
+                  RMSE = OLS.RMSE,
+                  )
+
+knitr::kable(results, digits = 3)
 ```
 
-The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
+
+The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%, we can infer our error is overall relatively small. 
+
 
 ##Ridge Regression
 
@@ -62,7 +87,7 @@ Let's fit a ridge regression. Also, we can manually specify a grid of values for
 
 ```{r}
 grid <- 10^ seq (10,-2, length =100)
-ridge.mod <- glmnet(X, Y, alpha = 0, lambda = grid)  
+ridge.mod <- glmnet(X.test, Y.test, alpha = 0, lambda = grid)  
 
 # alpha = 0 specifies that we are using a Ridge Regression.
 # glmnet automatically does centering first; Standardize = TRUE by default
@@ -112,30 +137,95 @@ set.seed(10)
 
 ridge.cv <- cv.glmnet(X.train, Y.train, alpha = 0)
 
-pred <- predict(ridge.cv, s="lambda.min", newx = X[-train, ]) 
+ridge.pred <- predict(ridge.cv, s="lambda.min", newx = X.test) 
 
-MSE <- function(x, y){sqrt(sum((x-y)^2))/length(x)}
 
-ridge.MSE <- MSE(pred, Y[-train])
+ridge.RMSE <- RMSE(ridge.pred)
+
 
 bestlam <- ridge.cv$lambda.min
 ```
-Here `cv.glmnet` uses 10-fold cross validation (by default) and returns a `cv.glmnet` object containing a sequence of models. The model that miminimized the MSE can be found using `lambda.min`. Here the best lambda is `r round(bestlam, 3)` and its corresponding estimate of the test error is `r round(ridge.MSE, 3)`. We could access the coefficients of this model by calling `coef(ridge.cv, s = "lambda.min")` and calculate their *l-2-norm* `r round(el2norm(coef(ridge.cv, s = "lambda.min")), 2)`.
+Here `cv.glmnet` uses 10-fold cross validation (by default) and returns a `cv.glmnet` object containing a sequence of models. The model that miminimized the MSE can be found using `lambda.min`. Here the best lambda is `r round(bestlam, 3)` and its corresponding estimate of the test error is `r round(ridge.RMSE, 3)`. We could access the coefficients of this model by calling `coef(ridge.cv, s = "lambda.min")` and calculate their *l-2-norm* `r round(el2norm(coef(ridge.cv, s = "lambda.min")), 2)`.
 
 ## The Lasso
 
 The Lasso is similar to ridge regression, except that the penalty is applied to the *l-1-norm* norm of the coeffiecients: $||\beta||_1$. That is, the lasso selects the best model by minimizing the quantity $RSS + \lambda\sum_{j=1}^p|\beta_j|$. Unlike Ridge regression, however, the lasso shrinks some of the coefficients to zero, and thus performs *variable selection*. The advantage of the lasso is that it yields *sparse* models with less coefficients are easier to interperet. 
 
 ```{r}
-lasso.mod <- glmnet(X, Y, alpha = 1, lambda = grid)
+set.seed(1)
 
 lasso.cv <- cv.glmnet(X.train, Y.train, alpha = 1)
 
-bestlam <- lasso.cv$lambda.min
+lasso.lam <- lasso.cv$lambda.min
 
 coef(lasso.cv, s = "lambda.min")
+
+lasso.mod <- glmnet(X.train, Y.train, alpha = 1, lambda = grid)
+
+lasso.pred <- predict(lasso.mod, s=lasso.lam, newx = X.test)
 
 
 ```
 
 We can see that some of the variables have been dropped. 
+
+```{r}
+lasso.RMSE <- RMSE(lasso.pred)
+
+results <- rbind(results, list("Ridge", ridge.RMSE), list("Lasso", lasso.RMSE))
+
+knitr::kable(results, digits = 3)
+
+```
+
+For some reason, the ridge and lasso perform substantially worse than the ordinary least squares model.
+
+
+##Principle Components Regression
+
+```{r}
+library(pls)
+set.seed(2)
+PCR.mod <- pcr(Apps ~ ., subset = train, data = data_df,  validation = "CV")
+
+validationplot(PCR.mod, val.type = "MSEP")
+```
+
+The validation plot compares the performance of PCR based off the number of components that are chosen. The MSEP axis is actually the RSME used to measure the training error. The error stabilizes around 5 or 6 components, and overall decreases monotonically as we include more components. Using all components would defeat the purpose of PCR and actually return the OLS solutions, where each variable is its own component.
+
+```{r}
+summary(PCR.mod)
+```
+
+The summary which reveals the training error and variance explained per number of components included, further shows that including more than 6 components gives no benefit. However it may be best to use even less components to create a better model. Three components should work, since it explains 93% of the variance.  
+
+```{r}
+PCR.pred <- predict(PCR.mod, X.test, ncomp = 3)
+PCR.RMSE <- RMSE(PCR.pred)
+results <- rbind(results,  list("PCR", PCR.RMSE))
+
+knitr::kable(results, digits = 3)
+
+```
+
+##Partial Least Squares
+
+Partial least sqaures is a supervised alternative to principle components regression. PLS attempts to choose components that explain variance in both the predictors and response. 
+
+```{r}
+PLS.mod <- plsr(Apps ~ ., data = data_df, subset = train, validation = "CV")
+summary(PLS.mod)
+validationplot(PLS.mod)
+
+```
+
+We can see that 3 components explains about 93% of the variance and gives a low training RMSE. It's better to keep the amount of components lowe to decrease the variance of the model, even if more components give slightly lower training RMSE. 
+
+```{r}
+PLS.pred <- predict(PLS.mod, X.test, ncomp = 3)
+PLS.RMSE <- RMSE(PLS.pred)
+results <- rbind(results, list("PLS", PLS.RMSE))
+knitr::kable(results, digits = 3)
+```
+
+Since PLS supervises the choice of components, it can be more effective than PCR for a regression problem when using less components. Notice how the RMSE at 1 component is alsmost 3 times that for PCR than PLS, but it becomes about equal for the inclusion of more components.  

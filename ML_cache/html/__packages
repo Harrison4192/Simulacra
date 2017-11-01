@@ -10,3 +10,5 @@ dplyr
 Matrix
 foreach
 glmnet
+magrittr
+pls
