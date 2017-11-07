@@ -231,11 +231,17 @@ $(document).ready(function () {
 <li><a href="#partial-least-squares"><span class="toc-section-number">1.5</span> Partial Least Squares</a></li>
 </ul></li>
 <li><a href="#simplifying-with-caret"><span class="toc-section-number">2</span> Simplifying with Caret</a></li>
+<li><a href="#subset-selection"><span class="toc-section-number">3</span> Subset selection</a><ul>
+<li><a href="#best-subset-selection"><span class="toc-section-number">3.1</span> Best Subset Selection</a></li>
+<li><a href="#estimates-of-test-error"><span class="toc-section-number">3.2</span> Estimates of Test error</a></li>
+<li><a href="#forward-selection"><span class="toc-section-number">3.3</span> Forward Selection</a></li>
+</ul></li>
 </ul>
 </div>
 
 <div id="regression-models" class="section level1">
 <h1><span class="header-section-number">1</span> Regression Models</h1>
+<p>reference: <em>Introduction to Statistical learning</em> (2015) <em>Tibshirani, Hastie</em></p>
 <div id="glmnet" class="section level2">
 <h2><span class="header-section-number">1.1</span> glmnet</h2>
 <p>In this analysis we will work with the “College” dataset, which contains 777 observations with 18 variables. The goals is to predict how many applications a college will recieve “Apps” based off other predictors.</p>
@@ -261,10 +267,10 @@ $(document).ready(function () {
 ##  $ Expend     : num  7041 10527 8735 19016 10922 ...
 ##  $ Grad.Rate  : num  60 56 54 59 15 55 63 73 80 52 ...</code></pre>
 <p>The variables are numeric, except for the factor: Private. Let’s build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.</p>
-<pre class="r"><code>X = model.matrix(Apps ~ ., data = College)
-Y = College$Apps
+<pre class="r"><code>X = model.matrix(Apps ~ . - 1, data = College)[, -1]
+Y = model.matrix(~ Apps + 0, data = College)
 
-data_df &lt;- cbind(as.data.frame(X), College[, &quot;Apps&quot;]) %&gt;% rename(Apps = `College[, &quot;Apps&quot;]`)</code></pre>
+data_df &lt;- as.data.frame(cbind(X, Y))</code></pre>
 <p>Since we will be testing the performance of multiple models, we need to split the data into a test and training set.</p>
 <pre class="r"><code>train &lt;- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
 X.train &lt;- X[train, ]
@@ -299,11 +305,11 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">6.595</td>
+<td align="right">7.852</td>
 </tr>
 </tbody>
 </table>
-<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 0.2197004%, we can infer our error is overall relatively small.</p>
+<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 0.2615748%, we can infer our error is overall relatively small.</p>
 </div>
 <div id="ridge-regression" class="section level2">
 <h2><span class="header-section-number">1.2</span> Ridge Regression</h2>
@@ -317,60 +323,58 @@ ridge.mod &lt;- glmnet(X.test, Y.test, alpha = 0, lambda = grid)
 # glmnet automatically does centering first; Standardize = TRUE by default</code></pre>
 <p>The glmnet object has several useful accessor methods that return information about the model. <code>coef</code> returns a matrix of coefficients. There are 19 rows, one for each coefficient, and 100 columns corresponding to different lambda values.</p>
 <pre class="r"><code>dim(coef(ridge.mod))</code></pre>
-<pre><code>## [1]  19 100</code></pre>
+<pre><code>## [1]  18 100</code></pre>
 <p>The <code>lambda</code> attribute returns the lambda values we generated. Let’s looks at the coefficients calculated for the 10th, 50th, and 90th lambda.</p>
 <pre class="r"><code>el2norm &lt;- function(x){sqrt(sum(x^2))}
 
 el2norm.r &lt;- function(col){el2norm(coef(ridge.mod)[, col])}
 
 coef(ridge.mod)[,c(10,50,90)] %&gt;% rbind( map_dbl(c(10,50,90), el2norm.r) ) %&gt;% rbind(ridge.mod$lambda[c(10,50,90)])</code></pre>
-<pre><code>## 21 x 3 sparse Matrix of class &quot;dgCMatrix&quot;
+<pre><code>## 20 x 3 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                        s9           s49           s89
-## (Intercept)  3.001460e+03 -1.458263e+03 -450.12509864
-## (Intercept)  .             .               .         
-## PrivateYes  -1.789027e-02 -4.648071e+02 -494.38698125
-## Accept       7.103069e-06  2.489066e-01    1.58314568
-## Enroll       1.681834e-05  5.134601e-01   -0.86900691
-## Top10perc    3.544599e-04  9.530257e+00   49.79963953
-## Top25perc    3.276538e-04  7.841425e+00  -14.15596655
-## F.Undergrad  3.098810e-06  9.162011e-02    0.05640780
-## P.Undergrad  4.827473e-06  1.103401e-01    0.04442850
-## Outstate     2.300851e-07  7.305875e-03   -0.08570968
-## Room.Board   2.775406e-06  9.438862e-02    0.15145333
-## Books        1.481607e-05  3.409711e-01    0.02115933
-## Personal     4.871357e-06  9.181531e-02    0.03090023
-## PhD          4.415587e-04  8.323631e+00   -8.66418687
-## Terminal     4.631391e-04  8.360791e+00   -3.33962422
-## S.F.Ratio    4.458416e-04  1.112056e+01   15.39869024
-## perc.alumni -1.343654e-04 -5.211799e+00    0.13310284
-## Expend       9.174057e-07  2.860713e-02    0.07795514
-## Grad.Rate    1.576579e-04  5.769915e+00    8.68071987
-##              3.001460e+03  1.530703e+03  670.90498961
+## (Intercept)  3.100552e+03 -1.642019e+03 -345.77043617
+## PrivateYes  -1.907322e-02 -4.835283e+02 -504.99526940
+## Accept       7.431517e-06  2.577556e-01    1.63373924
+## Enroll       1.783060e-05  5.324137e-01   -1.43072121
+## Top10perc    3.877902e-04  1.019843e+01   60.61954496
+## Top25perc    3.475631e-04  7.940532e+00  -22.31523237
+## F.Undergrad  3.315524e-06  9.564331e-02    0.14580765
+## P.Undergrad  5.875664e-06  1.283981e-01    0.01142611
+## Outstate     2.922683e-07  8.303856e-03   -0.10231102
+## Room.Board   3.144912e-06  1.043023e-01    0.19815883
+## Books        1.463976e-05  3.393483e-01   -0.07713976
+## Personal     4.479713e-06  7.827989e-02    0.01818403
+## PhD          4.806404e-04  8.419201e+00  -12.15935258
+## Terminal     5.231937e-04  8.951213e+00   -1.68406036
+## S.F.Ratio    4.930160e-04  1.071608e+01   14.84022619
+## perc.alumni -1.259608e-04 -4.697841e+00    0.59594153
+## Expend       1.031089e-06  3.171805e-02    0.08660075
+## Grad.Rate    1.783698e-04  6.329675e+00   11.43949645
+##              3.100552e+03  1.711876e+03  615.83849498
 ##              8.111308e+08  1.149757e+04    0.16297508</code></pre>
 <p>The last two rows are the <em>l-2-norm</em> and the <span class="math inline">\(\lambda\)</span> value. We can see that for <span class="math inline">\(\lambda = .16\)</span> we have the highest shrinkage of the coefficients</p>
 <p>We can also use the <code>predict</code> method to estimate coefficients at a new value of <span class="math inline">\(\lambda\)</span>, say <span class="math inline">\(\lambda = 80\)</span></p>
 <pre class="r"><code>predict(ridge.mod, s=80, type=&quot;coefficients&quot;)</code></pre>
-<pre><code>## 19 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+<pre><code>## 18 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                         1
-## (Intercept) -842.54145642
-## (Intercept)    .         
-## PrivateYes  -511.92401570
-## Accept         1.36629641
-## Enroll        -0.22883111
-## Top10perc     39.62013832
-## Top25perc     -7.76407057
-## F.Undergrad    0.03611710
-## P.Undergrad    0.03576975
-## Outstate      -0.06314725
-## Room.Board     0.17405745
-## Books          0.05510074
-## Personal       0.01487869
-## PhD           -7.06756018
-## Terminal      -4.38993870
-## S.F.Ratio     15.11353972
-## perc.alumni   -3.52229120
-## Expend         0.07919428
-## Grad.Rate      9.62239114</code></pre>
+## (Intercept) -808.97174060
+## PrivateYes  -555.34941640
+## Accept         1.40738905
+## Enroll        -0.48903318
+## Top10perc     47.07621130
+## Top25perc    -12.62976976
+## F.Undergrad    0.06724295
+## P.Undergrad    0.02816964
+## Outstate      -0.07695085
+## Room.Board     0.22405145
+## Books         -0.01746563
+## Personal       0.01383666
+## PhD          -10.49745537
+## Terminal      -3.21081249
+## S.F.Ratio     14.57428063
+## perc.alumni   -3.38249800
+## Expend         0.08772614
+## Grad.Rate     11.66425194</code></pre>
 <p>Let’s also look a the <code>%Dev</code> column when we print our model directly.</p>
 <pre class="r"><code># print(ridge.mod)   output is too long</code></pre>
 <p><code>%Dev</code> is the <em>Null Deviance</em> of the model. If the <em>Null Deviance</em> is very small, it signifies that the proposed model does not perform better than the null model. We can see that when lambda is very high, the <code>%Dev</code> is almost 0, but increases as lambda decreases, and the penalty on the coefficients is relaxed.</p>
@@ -386,7 +390,7 @@ ridge.RMSE &lt;- RMSE(ridge.pred)
 
 
 bestlam &lt;- ridge.cv$lambda.min</code></pre>
-<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 485.847 and its corresponding estimate of the test error is 44.633. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 1550.27.</p>
+<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 347.364 and its corresponding estimate of the test error is 59.102. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 1445.03.</p>
 </div>
 <div id="the-lasso" class="section level2">
 <h2><span class="header-section-number">1.3</span> The Lasso</h2>
@@ -398,27 +402,26 @@ lasso.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 1)
 lasso.lam &lt;- lasso.cv$lambda.min
 
 coef(lasso.cv, s = &quot;lambda.min&quot;)</code></pre>
-<pre><code>## 19 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
+<pre><code>## 18 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                         1
-## (Intercept)   69.34902528
-## (Intercept)    .         
-## PrivateYes  -595.64358292
-## Accept         1.86593908
-## Enroll        -0.34992361
-## Top10perc     57.22930932
-## Top25perc    -18.46259680
-## F.Undergrad   -0.18922923
-## P.Undergrad    0.06772948
-## Outstate      -0.15971823
-## Room.Board     0.05447433
-## Books         -0.45883492
-## Personal       0.13779185
-## PhD          -13.57517691
-## Terminal       0.79909250
-## S.F.Ratio      5.10482889
-## perc.alumni    4.09874698
-## Expend         0.14168984
-## Grad.Rate     12.80833938</code></pre>
+## (Intercept) -404.32771419
+## PrivateYes  -202.77471484
+## Accept         1.37604966
+## Enroll         0.02134891
+## Top10perc     17.65476802
+## Top25perc      .         
+## F.Undergrad    .         
+## P.Undergrad    0.03286638
+## Outstate      -0.03642873
+## Room.Board     .         
+## Books          .         
+## Personal       .         
+## PhD            .         
+## Terminal      -4.64803483
+## S.F.Ratio      5.60167335
+## perc.alumni   -1.55170529
+## Expend         0.07676709
+## Grad.Rate      2.11049080</code></pre>
 <pre class="r"><code>lasso.mod &lt;- glmnet(X.train, Y.train, alpha = 1, lambda = grid)
 
 lasso.pred &lt;- predict(lasso.mod, s=lasso.lam, newx = X.test)</code></pre>
@@ -438,15 +441,15 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">6.595</td>
+<td align="right">7.852</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">44.633</td>
+<td align="right">59.102</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">49.003</td>
+<td align="right">50.975</td>
 </tr>
 </tbody>
 </table>
@@ -462,33 +465,33 @@ validationplot(PCR.mod, val.type = &quot;MSEP&quot;)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 <p>The validation plot compares the performance of PCR based off the number of components that are chosen. The MSEP axis is actually the RSME used to measure the training error. The error stabilizes around 5 or 6 components, and overall decreases monotonically as we include more components. Using all components would defeat the purpose of PCR and actually return the OLS solutions, where each variable is its own component.</p>
 <pre class="r"><code>summary(PCR.mod)</code></pre>
-<pre><code>## Data:    X dimension: 194 18 
+<pre><code>## Data:    X dimension: 194 17 
 ##  Y dimension: 194 1
 ## Fit method: svdpc
-## Number of components considered: 18
+## Number of components considered: 17
 ## 
 ## VALIDATION: RMSEP
 ## Cross-validated using 10 random segments.
 ##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
-## CV            4686     4699     2764     2763     2798     2260     1541
-## adjCV         4686     4732     2747     2747     2807     2171     1515
+## CV            3284     3255     1323     1280     1272     1051    689.9
+## adjCV         3284     3248     1320     1278     1268     1044    684.8
 ##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
-## CV        1511     1524     1558      1456      1438      1440      1468
-## adjCV     1489     1501     1532      1433      1415      1417      1443
-##        14 comps  15 comps  16 comps  17 comps  18 comps
-## CV         1475      1433      1440      1396       NaN
-## adjCV      1450      1408      1414      1372       NaN
+## CV       692.4    704.4    709.1     701.8     666.8     669.5     671.3
+## adjCV    687.5    699.0    703.4     696.1     661.7     664.2     665.8
+##        14 comps  15 comps  16 comps  17 comps
+## CV        671.1     680.3     686.7     688.4
+## adjCV     665.6     674.0     680.0     681.5
 ## 
 ## TRAINING: % variance explained
 ##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
-## X     47.7637    85.35    93.30    97.18    98.83    99.59    99.93
-## Apps   0.1278    73.09    73.84    79.71    93.85    93.97    93.99
+## X      52.609    87.55    94.87    97.96    98.89    99.58    99.93
+## Apps    4.232    84.54    85.73    86.38    92.27    96.49    96.49
 ##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
-## X       99.97      100    100.00    100.00     100.0     100.0     100.0
-## Apps    93.99       94     94.59     94.78      94.8      94.8      94.8
-##       15 comps  16 comps  17 comps  18 comps
-## X       100.00    100.00    100.00       100
-## Apps     95.23     95.25     95.35       100</code></pre>
+## X       99.98   100.00    100.00    100.00    100.00    100.00    100.00
+## Apps    96.49    96.49     96.56     96.86     96.86     96.88     96.91
+##       15 comps  16 comps  17 comps
+## X       100.00    100.00    100.00
+## Apps     96.96     96.98     97.01</code></pre>
 <p>The summary which reveals the training error and variance explained per number of components included, further shows that including more than 6 components gives no benefit. However it may be best to use even less components to create a better model. Three components should work, since it explains 93% of the variance.</p>
 <pre class="r"><code>PCR.pred &lt;- predict(PCR.mod, X.test, ncomp = 3)
 PCR.RMSE &lt;- RMSE(PCR.pred)
@@ -505,19 +508,19 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">6.595</td>
+<td align="right">7.852</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">44.633</td>
+<td align="right">59.102</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">49.003</td>
+<td align="right">50.975</td>
 </tr>
 <tr class="even">
 <td align="left">PCR</td>
-<td align="right">66.753</td>
+<td align="right">83.059</td>
 </tr>
 </tbody>
 </table>
@@ -527,33 +530,33 @@ knitr::kable(results, digits = 3)</code></pre>
 <p>Partial least sqaures is a supervised alternative to principle components regression. PLS attempts to choose components that explain variance in both the predictors and response.</p>
 <pre class="r"><code>PLS.mod &lt;- plsr(Apps ~ ., data = data_df, subset = train, validation = &quot;CV&quot;)
 summary(PLS.mod)</code></pre>
-<pre><code>## Data:    X dimension: 194 18 
+<pre><code>## Data:    X dimension: 194 17 
 ##  Y dimension: 194 1
 ## Fit method: kernelpls
-## Number of components considered: 18
+## Number of components considered: 17
 ## 
 ## VALIDATION: RMSEP
 ## Cross-validated using 10 random segments.
 ##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
-## CV            4686     2684     2550     2166     1748     1602     1581
-## adjCV         4686     2649     2365     2128     1719     1573     1554
+## CV            3284     1349     1251     1071    771.1    688.2    685.0
+## adjCV         3284     1336     1251     1070    765.3    684.2    680.6
 ##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
-## CV        1604     1680     1693      1566      1611      1593      1555
-## adjCV     1575     1646     1651      1534      1574      1555      1520
-##        14 comps  15 comps  16 comps  17 comps  18 comps
-## CV         1547      1555      1564      1556      1556
-## adjCV      1513      1521      1529      1521      1521
+## CV       689.3    699.9    694.8     661.3     661.6     667.9     664.8
+## adjCV    684.8    694.5    674.2     656.8     656.7     662.2     659.5
+##        14 comps  15 comps  16 comps  17 comps
+## CV        664.7     666.4     666.2     668.9
+## adjCV     659.3     660.8     660.6     663.0
 ## 
 ## TRAINING: % variance explained
 ##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
-## X       37.56    47.72    88.66    95.05    98.82    99.56    99.92
-## Apps    75.75    87.97    90.26    93.04    93.97    93.99    94.00
+## X       36.80    86.61    93.35    96.18    98.79    99.58    99.86
+## Apps    84.58    86.22    90.46    95.49    96.41    96.49    96.50
 ##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
-## X       99.97    99.97    100.00    100.00    100.00    100.00    100.00
-## Apps    94.04    94.63     94.81     94.97     95.23     95.24     95.24
-##       15 comps  16 comps  17 comps  18 comps
-## X       100.00    100.00    100.00    102.90
-## Apps     95.25     95.25     95.35     95.35</code></pre>
+## X       99.98    99.98    100.00     100.0    100.00    100.00    100.00
+## Apps    96.50    96.84     96.86      96.9     96.96     96.97     96.97
+##       15 comps  16 comps  17 comps
+## X       100.00    100.00    100.00
+## Apps     96.98     96.98     97.01</code></pre>
 <pre class="r"><code>validationplot(PLS.mod)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
 <p>We can see that 3 components explains about 93% of the variance and gives a low training RMSE. It’s better to keep the amount of components lowe to decrease the variance of the model, even if more components give slightly lower training RMSE.</p>
@@ -571,23 +574,23 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">6.595</td>
+<td align="right">7.852</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">44.633</td>
+<td align="right">59.102</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">49.003</td>
+<td align="right">50.975</td>
 </tr>
 <tr class="even">
 <td align="left">PCR</td>
-<td align="right">66.753</td>
+<td align="right">83.059</td>
 </tr>
 <tr class="odd">
 <td align="left">PLS</td>
-<td align="right">52.771</td>
+<td align="right">69.416</td>
 </tr>
 </tbody>
 </table>
@@ -616,7 +619,7 @@ trainControl &lt;- trainControl(method=&quot;cv&quot;, number=5)
   list(method_name, method_RMSE)
   }
   
-caret_names &lt;- list(&quot;lm&quot;, &quot;lasso&quot;, &quot;ridge&quot;, &quot;glmnet&quot;, &quot;pcr&quot;, &quot;pls&quot;)</code></pre>
+caret_names &lt;- list(&quot;lm&quot;, &quot;lasso&quot;, &quot;ridge&quot;, &quot;glmnet&quot;, &quot;pcr&quot;, &quot;pls&quot;, &quot;lars&quot;)</code></pre>
 <p>Now I write a short pipeline to run the <code>my_caret</code> function on the list of method names and display the results in a nice table.</p>
 <pre class="r"><code>map(caret_names, my_caret) %&gt;%
   transpose() %&gt;% 
@@ -637,32 +640,169 @@ knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = &quot;Result pr
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">lasso</td>
-<td align="right">40.884</td>
+<td align="left">ridge</td>
+<td align="right">46.492</td>
 </tr>
 <tr class="even">
-<td align="left">glmnet</td>
-<td align="right">40.895</td>
+<td align="left">lars</td>
+<td align="right">46.492</td>
 </tr>
 <tr class="odd">
 <td align="left">lm</td>
-<td align="right">40.956</td>
+<td align="right">46.492</td>
 </tr>
 <tr class="even">
-<td align="left">ridge</td>
-<td align="right">40.956</td>
+<td align="left">lasso</td>
+<td align="right">46.852</td>
 </tr>
 <tr class="odd">
-<td align="left">pls</td>
-<td align="right">47.444</td>
+<td align="left">glmnet</td>
+<td align="right">46.977</td>
 </tr>
 <tr class="even">
+<td align="left">pls</td>
+<td align="right">61.225</td>
+</tr>
+<tr class="odd">
 <td align="left">pcr</td>
-<td align="right">70.510</td>
+<td align="right">88.725</td>
 </tr>
 </tbody>
 </table>
 <p>The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods.</p>
+</div>
+<div id="subset-selection" class="section level1">
+<h1><span class="header-section-number">3</span> Subset selection</h1>
+<div id="best-subset-selection" class="section level2">
+<h2><span class="header-section-number">3.1</span> Best Subset Selection</h2>
+<p>Subset selection is a technique for selecting a subset of your original varaible to be predictors in your model. For example, let’s say we want to fit a least squares model to the training data, but we suspect that it will generalize better to testing data if we keep fewer variables. Perhaps some are reduntant or lack predictive power. In the <em>Best Subset Selection</em> procedure, we consider all possible models. Since we are working with the College data which has 17 predictor variables, this will require fitting <span class="math display">\[\binom{17}{0} + \binom{17}{1} + \binom{17}{2} + \dots + \binom{17}{17} = \sum_{k = 0}^{17}\binom{17}{k} = 2^{17}\]</span> models. A quick aside regarding the combinatoric identity: <span class="math inline">\(\sum_{k = 0}^{p}\binom{p}{k} = 2^{p}\)</span>. It arises from th question, what is the cardinality of the power set of a set containing <span class="math inline">\(n\)</span> objects. That is, how many distinct subsets can be created from this set. We can apprach this two ways: iterate over each element and decide whether or not to include it in your subset: this gives <span class="math inline">\(2^p\)</span> choices. Or compute individually the amount of subsets of size <span class="math inline">\(k\)</span> from <span class="math inline">\(0\leq k \leq n\)</span> by taking combinations, and then summing the counts. These two approaches are identical, hence the formula. Let’s apply:</p>
+<pre class="r"><code>library(leaps)
+BEST.mod_9 = regsubsets(Apps ~ ., data_df)
+summary(BEST.mod_9)</code></pre>
+<pre><code>## Subset selection object
+## Call: regsubsets.formula(Apps ~ ., data_df)
+## 17 Variables  (and intercept)
+##             Forced in Forced out
+## PrivateYes      FALSE      FALSE
+## Accept          FALSE      FALSE
+## Enroll          FALSE      FALSE
+## Top10perc       FALSE      FALSE
+## Top25perc       FALSE      FALSE
+## F.Undergrad     FALSE      FALSE
+## P.Undergrad     FALSE      FALSE
+## Outstate        FALSE      FALSE
+## Room.Board      FALSE      FALSE
+## Books           FALSE      FALSE
+## Personal        FALSE      FALSE
+## PhD             FALSE      FALSE
+## Terminal        FALSE      FALSE
+## S.F.Ratio       FALSE      FALSE
+## perc.alumni     FALSE      FALSE
+## Expend          FALSE      FALSE
+## Grad.Rate       FALSE      FALSE
+## 1 subsets of each size up to 8
+## Selection Algorithm: exhaustive
+##          PrivateYes Accept Enroll Top10perc Top25perc F.Undergrad
+## 1  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot; &quot;    &quot; &quot;       &quot; &quot;       &quot; &quot;        
+## 2  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot; &quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+## 3  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot; &quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+## 4  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot; &quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+## 5  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot;*&quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+## 6  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot;*&quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+## 7  ( 1 ) &quot; &quot;        &quot;*&quot;    &quot;*&quot;    &quot;*&quot;       &quot;*&quot;       &quot; &quot;        
+## 8  ( 1 ) &quot;*&quot;        &quot;*&quot;    &quot;*&quot;    &quot;*&quot;       &quot; &quot;       &quot; &quot;        
+##          P.Undergrad Outstate Room.Board Books Personal PhD Terminal
+## 1  ( 1 ) &quot; &quot;         &quot; &quot;      &quot; &quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 2  ( 1 ) &quot; &quot;         &quot; &quot;      &quot; &quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 3  ( 1 ) &quot; &quot;         &quot; &quot;      &quot; &quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 4  ( 1 ) &quot; &quot;         &quot;*&quot;      &quot; &quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 5  ( 1 ) &quot; &quot;         &quot;*&quot;      &quot; &quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 6  ( 1 ) &quot; &quot;         &quot;*&quot;      &quot;*&quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 7  ( 1 ) &quot; &quot;         &quot;*&quot;      &quot;*&quot;        &quot; &quot;   &quot; &quot;      &quot; &quot; &quot; &quot;     
+## 8  ( 1 ) &quot; &quot;         &quot;*&quot;      &quot;*&quot;        &quot; &quot;   &quot; &quot;      &quot;*&quot; &quot; &quot;     
+##          S.F.Ratio perc.alumni Expend Grad.Rate
+## 1  ( 1 ) &quot; &quot;       &quot; &quot;         &quot; &quot;    &quot; &quot;      
+## 2  ( 1 ) &quot; &quot;       &quot; &quot;         &quot; &quot;    &quot; &quot;      
+## 3  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;      
+## 4  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;      
+## 5  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;      
+## 6  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;      
+## 7  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;      
+## 8  ( 1 ) &quot; &quot;       &quot; &quot;         &quot;*&quot;    &quot; &quot;</code></pre>
+<p>Th asterix indicated whether the variable is included in the model. The row indices indicate a model of that many variables, so each row is a separate model, each one containing one more variable than in the previous row. The algorithm calculates only up to 9-variable models by default. Lets try setting <code>nvmax = 17</code> to include all models, and then extract some statistics.</p>
+<pre class="r"><code>BEST.mod_17 &lt;- regsubsets(Apps ~ ., data_df, nvmax = 17)
+bmod.summary &lt;- summary(BEST.mod_17)</code></pre>
+<pre class="r"><code>show_metrics &lt;- function(my_summary){
+
+metrics &lt;- c(&quot;adjr2&quot;, &quot;rsq&quot;, &quot;bic&quot;, &quot;cp&quot;)
+
+best_df &lt;- as.data.frame(`[`(my_summary, metrics)) 
+
+best_df_melt &lt;- best_df %&gt;% gather(key = &quot;metric&quot;, value = &quot;value&quot;) %&gt;% mutate(model = rep(1:17, 4))
+
+
+
+(ggplot(data = best_df_melt, aes(x = model, y = value, color = metric)) +
+         geom_line() +
+        facet_grid(metric ~ ., scales = &quot;free_y&quot;)) %&gt;% print()
+
+c(map_dbl(best_df[c(&quot;adjr2&quot;, &quot;rsq&quot;)], which.max), map_dbl(best_df[c(&quot;bic&quot;, &quot;cp&quot;)], which.min))
+
+}</code></pre>
+<pre class="r"><code>show_metrics(bmod.summary)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+<pre><code>## adjr2   rsq   bic    cp 
+##    13    17    10    12</code></pre>
+<p>The graphs show how the error metric changes as we introduce more variables into the model. They seem to drop off rapidly and then hit a max or min, as displayed in the table.</p>
+</div>
+<div id="estimates-of-test-error" class="section level2">
+<h2><span class="header-section-number">3.2</span> Estimates of Test error</h2>
+<p>These statistics are intended to estimate the test error of the model by making an adjustment to the training error to account for the bias due to overfitting in the training process.</p>
+<p>Let’s interperet each of these statistics (exact formulas can be looked up):</p>
+<ul>
+<li><span class="math inline">\(R^2_{adj}\)</span> modifies the denominator of <span class="math inline">\(RSS\)</span> in <span class="math inline">\(R^2\)</span> to RSS/(N - p - 1), where p is the number of predictor variables in our model. Unlike <span class="math inline">\(R^2\)</span> which will increase monotincally with additionaly variables,<span class="math inline">\(R^2_{adj}\)</span> penalizes the addition of noise variables. Both these statistics measure the goodness-of-fit of the model on a scale of <span class="math inline">\(0\)</span> to <span class="math inline">\(1\)</span>, so we want to choose the model that maximizes them.</li>
+</ul>
+<p>-<span class="math inline">\(C_p\)</span> adds a penalty of <span class="math inline">\(p *\hat{\sigma}\)</span> to the RSS, where sigma estimates the variance in the response. Clearly <span class="math inline">\(C_p\)</span> <span class="math inline">\(p\)</span> increases with more predictors, so we want to minimize it.</p>
+<p>-<span class="math inline">\(AIC\)</span> is proportional to <span class="math inline">\(C_p\)</span> so it should be minimized</p>
+<p>-<span class="math inline">\(BIC\)</span> adds a term of <span class="math inline">\(log(N) * p * \hat{\sigma}^2\)</span> to the RSS where <span class="math inline">\(N\)</span> is the number of obserations, so it penalizes models with many variables and observations. Thus, we want to mimize it. The more severe penalty given by the <span class="math inline">\(BIC\)</span> also explains why it chose the sparsest model.</p>
+</div>
+<div id="forward-selection" class="section level2">
+<h2><span class="header-section-number">3.3</span> Forward Selection</h2>
+<p>Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. <em>Forward Selection</em> works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model’s RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test <span class="math inline">\(1 + \sum_{k=0}^{p-1}p - k = 1 + \frac{p(p+1)}{2}\)</span> models. In our College dataset, <span class="math inline">\(p = 17\)</span>, so we fit <span class="math display">\[1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154\]</span>. This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing <span class="math inline">\(R^2\)</span> amongst the different possible models. At the end, we get <span class="math inline">\(p+1\)</span> models: <span class="math inline">\(M_0, \dots, M_17\)</span>. Since these models do not have the number of variables, we cannot compare them directly using <span class="math inline">\(R^2\)</span> (it will increase monotionically). Instead we can use on the alternative criteria listed earlier.</p>
+<pre class="r"><code>FWD.mod &lt;- regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
+
+sum.FWD &lt;- summary(FWD.mod)
+
+
+show_metrics(sum.FWD)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<pre><code>## adjr2   rsq   bic    cp 
+##    13    17    10    12</code></pre>
+<p>The metrics are the same for both methods.</p>
+<p>Let’s compare the speed of these algorithms.</p>
+<pre class="r"><code>BEST_time</code></pre>
+<pre><code>## Unit: milliseconds
+##                                              expr      min       lq
+##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.093272 3.288136
+##      mean   median       uq      max neval
+##  4.127863 3.598927 4.352843 14.51823   100</code></pre>
+<pre class="r"><code>FWD_time</code></pre>
+<pre><code>## Unit: milliseconds
+##                                                                  expr
+##  regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
+##       min      lq    mean   median       uq      max neval
+##  2.744229 2.87404 3.66638 3.182119 3.778638 14.34198   100</code></pre>
+<p>We can see that forward selection is on average a fe miliseconds faster than the full model selection.</p>
+<p>Let’s compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection.</p>
+<pre class="r"><code>sum.FWD$which[10, ] == bmod.summary$which[10, ]</code></pre>
+<pre><code>## (Intercept)  PrivateYes      Accept      Enroll   Top10perc   Top25perc 
+##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE 
+## F.Undergrad P.Undergrad    Outstate  Room.Board       Books    Personal 
+##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE 
+##         PhD    Terminal   S.F.Ratio perc.alumni      Expend   Grad.Rate 
+##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE</code></pre>
+<p>It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimesnional data.</p>
+</div>
 </div>
 
 

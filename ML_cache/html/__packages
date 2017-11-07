@@ -16,3 +16,6 @@ lattice
 caret
 lars
 elasticnet
+leaps
+bindrcpp
+microbenchmark

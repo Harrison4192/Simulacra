@@ -10,13 +10,18 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
 library(ISLR)
 library(tidyverse)
 library(glmnet)
 library(magrittr)
+library(microbenchmark)
 ```
 
 #Regression Models
+
+reference: *Introduction to Statistical learning* (2015) *Tibshirani, Hastie*
 
 ##glmnet
 
@@ -32,13 +37,13 @@ str(College)
 The variables are numeric, except for the factor: Private. Let's build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.
 
 ```{r}
-X = model.matrix(Apps ~ ., data = College)
-Y = College$Apps
+X = model.matrix(Apps ~ . - 1, data = College)[, -1]
+Y = model.matrix(~ Apps + 0, data = College)
 
-data_df <- cbind(as.data.frame(X), College[, "Apps"]) %>% rename(Apps = `College[, "Apps"]`)
-
+data_df <- as.data.frame(cbind(X, Y))
 
 ```
+
 
 Since we will be testing the performance of multiple models, we need to split the data into a test and training set.
 
@@ -254,7 +259,7 @@ trainControl <- trainControl(method="cv", number=5)
   list(method_name, method_RMSE)
   }
   
-caret_names <- list("lm", "lasso", "ridge", "glmnet", "pcr", "pls")
+caret_names <- list("lm", "lasso", "ridge", "glmnet", "pcr", "pls", "lars")
 ```
 
 Now I write a short pipeline to run the `my_caret` function on the list of method names and display the results in a nice table.  
@@ -272,3 +277,109 @@ knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = "Result produce
 ```
 
 The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods. 
+
+# Subset selection
+
+##Best Subset Selection
+
+Subset selection is a technique for selecting a subset of your original varaible to be predictors in your model. For example, let's say we want to fit a least squares model to the training data, but we suspect that it will generalize better to testing data if we keep fewer variables. Perhaps some are reduntant or lack predictive power. In the *Best Subset Selection* procedure, we consider all possible models. Since we are working with the College data which has 17 predictor variables, this will require fitting $$\binom{17}{0} + \binom{17}{1} + \binom{17}{2} + \dots + \binom{17}{17} = \sum_{k = 0}^{17}\binom{17}{k} = 2^{17}$$ models. 
+A quick aside regarding the combinatoric identity: $\sum_{k = 0}^{p}\binom{p}{k} = 2^{p}$. It arises from th question, what is the cardinality of the power set of a set containing $n$ objects. That is, how many distinct subsets can be created from this set. We can apprach this two ways: iterate over each element and decide whether or not to include it in your subset: this gives $2^p$ choices. Or compute individually the amount of subsets of size $k$ from $0\leq k \leq n$ by taking combinations, and then summing the counts. These two approaches are identical, hence the formula. Let's apply:
+
+```{r warning=FALSE, message=FALSE}
+library(leaps)
+BEST.mod_9 = regsubsets(Apps ~ ., data_df)
+summary(BEST.mod_9)
+```
+
+Th asterix indicated whether the variable is included in the model. The row indices indicate a model of that many variables, so each row is a separate model, each one containing one more variable than in the previous row. The algorithm calculates only up to 9-variable models by default. Lets try setting `nvmax = 17` to include all models, and then extract some statistics.
+
+```{r message = FALSE}
+BEST.mod_17 <- regsubsets(Apps ~ ., data_df, nvmax = 17)
+bmod.summary <- summary(BEST.mod_17)
+
+```
+
+
+
+```{r}
+
+show_metrics <- function(my_summary){
+
+metrics <- c("adjr2", "rsq", "bic", "cp")
+
+best_df <- as.data.frame(`[`(my_summary, metrics)) 
+
+best_df_melt <- best_df %>% gather(key = "metric", value = "value") %>% mutate(model = rep(1:17, 4))
+
+
+
+(ggplot(data = best_df_melt, aes(x = model, y = value, color = metric)) +
+         geom_line() +
+        facet_grid(metric ~ ., scales = "free_y")) %>% print()
+
+c(map_dbl(best_df[c("adjr2", "rsq")], which.max), map_dbl(best_df[c("bic", "cp")], which.min))
+
+}
+```
+
+
+
+```{r}
+show_metrics(bmod.summary)
+```
+
+The graphs show how the error metric changes as we introduce more variables into the model. They seem to drop off rapidly and then hit a max or min, as displayed in the table.
+
+
+## Estimates of Test error
+These statistics are intended to estimate the test error of the model by making an adjustment to the training error to account for the bias due to overfitting in the training process. 
+
+Let's interperet each of these statistics (exact formulas can be looked up): 
+
+- $R^2_{adj}$  modifies the denominator of $RSS$ in $R^2$ to  RSS/(N - p - 1), where p is the number of predictor variables in our model. Unlike $R^2$ which will increase monotincally with additionaly variables,$R^2_{adj}$ penalizes the addition of noise variables. Both these statistics measure the goodness-of-fit of the model on a scale of $0$ to $1$, so we want to choose the model that maximizes them. 
+
+-$C_p$ adds a penalty of $p *\hat{\sigma}$ to the RSS, where sigma estimates the variance in the response. Clearly $C_p$ $p$ increases with more predictors, so we want to minimize it.
+
+-$AIC$ is proportional to $C_p$ so it should be minimized
+
+-$BIC$ adds a term of $log(N) * p * \hat{\sigma}^2$ to the RSS where $N$ is the number of obserations, so it penalizes models with many variables and observations. Thus, we want to mimize it. The more severe penalty given by the $BIC$ also explains why it chose the sparsest model. 
+
+##Forward Selection
+
+Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. *Forward Selection* works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model's RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test $1 + \sum_{k=0}^{p-1}p - k  = 1 + \frac{p(p+1)}{2}$ models. In our College dataset, $p = 17$, so we fit $$1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154$$. This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing $R^2$ amongst the different possible models. At the end, we get $p+1$ models: $M_0, \dots, M_17$. Since these models do not have the number of variables, we cannot compare them directly using $R^2$ (it will increase monotionically). Instead we can use on the alternative criteria listed earlier. 
+
+```{r}
+FWD.mod <- regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = "forward")
+
+sum.FWD <- summary(FWD.mod)
+
+
+show_metrics(sum.FWD)
+
+
+```
+
+The metrics are the same for both methods.
+
+
+Let's compare the speed of these algorithms. 
+
+
+```{r include = FALSE}
+FWD_time <- microbenchmark(regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = "forward")) 
+BEST_time <- microbenchmark(regsubsets(Apps ~ ., data = data_df, nvmax = 17))
+```
+```{r}
+BEST_time
+FWD_time
+```
+
+We can see that forward selection is on average a fe miliseconds faster than the full model selection. 
+
+Let's compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection. 
+
+```{r}
+sum.FWD$which[10, ] == bmod.summary$which[10, ]
+```
+
+It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimesnional data. 
