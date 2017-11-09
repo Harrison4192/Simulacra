@@ -283,7 +283,7 @@ The results are quite similar to running each model individually. The ridge and 
 ##Best Subset Selection
 
 Subset selection is a technique for selecting a subset of your original varaible to be predictors in your model. For example, let's say we want to fit a least squares model to the training data, but we suspect that it will generalize better to testing data if we keep fewer variables. Perhaps some are reduntant or lack predictive power. In the *Best Subset Selection* procedure, we consider all possible models. Since we are working with the College data which has 17 predictor variables, this will require fitting $$\binom{17}{0} + \binom{17}{1} + \binom{17}{2} + \dots + \binom{17}{17} = \sum_{k = 0}^{17}\binom{17}{k} = 2^{17}$$ models. 
-A quick aside regarding the combinatoric identity: $\sum_{k = 0}^{p}\binom{p}{k} = 2^{p}$. It arises from th question, what is the cardinality of the power set of a set containing $n$ objects. That is, how many distinct subsets can be created from this set. We can apprach this two ways: iterate over each element and decide whether or not to include it in your subset: this gives $2^p$ choices. Or compute individually the amount of subsets of size $k$ from $0\leq k \leq n$ by taking combinations, and then summing the counts. These two approaches are identical, hence the formula. Let's apply:
+A quick aside regarding the combinatoric identity: $\sum_{k = 0}^{p}\binom{p}{k} = 2^{p}$. It arises from the question, what is the cardinality of the power set of a set containing $n$ objects. That is, how many distinct subsets can be created from this set. We can apprach this two ways: iterate over each element and decide whether or not to include it in your subset: this gives $2^p$ choices. Or compute individually the amount of subsets of size $k$ from $0\leq k \leq n$ by taking combinations, and then summing the counts. These two approaches are identical, hence the formula. Let's apply:
 
 ```{r warning=FALSE, message=FALSE}
 library(leaps)
@@ -336,17 +336,17 @@ These statistics are intended to estimate the test error of the model by making 
 
 Let's interperet each of these statistics (exact formulas can be looked up): 
 
-- $R^2_{adj}$  modifies the denominator of $RSS$ in $R^2$ to  RSS/(N - p - 1), where p is the number of predictor variables in our model. Unlike $R^2$ which will increase monotincally with additionaly variables,$R^2_{adj}$ penalizes the addition of noise variables. Both these statistics measure the goodness-of-fit of the model on a scale of $0$ to $1$, so we want to choose the model that maximizes them. 
+- $R^2_{adj}$  modifies the denominator of $RSS$ in $R^2$ to  $RSS/(N - p - 1)$, where $p$ is the number of predictor variables in our model, thus inflating the error as we add more predictors.  Unlike $R^2$ which will increase monotincally with additionaly variables,$R^2_{adj}$ penalizes the addition of noise variables. Both these statistics measure the goodness-of-fit of the model on a scale of $0$ to $1$, so we want to choose the model that maximizes them. 
 
--$C_p$ adds a penalty of $p *\hat{\sigma}$ to the RSS, where sigma estimates the variance in the response. Clearly $C_p$ $p$ increases with more predictors, so we want to minimize it.
+- $C_p$ adds a penalty of $p *\hat{\sigma}$ to the RSS, where sigma estimates the variance in the response. Clearly $C_p$ increases with more predictors, so we want to minimize it.
 
--$AIC$ is proportional to $C_p$ so it should be minimized
+- $AIC$ is proportional to $C_p$ so it should be minimized
 
--$BIC$ adds a term of $log(N) * p * \hat{\sigma}^2$ to the RSS where $N$ is the number of obserations, so it penalizes models with many variables and observations. Thus, we want to mimize it. The more severe penalty given by the $BIC$ also explains why it chose the sparsest model. 
+- $BIC$ adds a term of $log(N) * p * \hat{\sigma}^2$ to the $RSS$ where $N$ is the number of obserations, so it penalizes models with many variables and observations. Thus, we want to mimize it. The more severe penalty given by the $BIC$ also explains why it chose the sparsest model. 
 
 ##Forward Selection
 
-Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. *Forward Selection* works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model's RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test $1 + \sum_{k=0}^{p-1}p - k  = 1 + \frac{p(p+1)}{2}$ models. In our College dataset, $p = 17$, so we fit $$1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154$$. This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing $R^2$ amongst the different possible models. At the end, we get $p+1$ models: $M_0, \dots, M_17$. Since these models do not have the number of variables, we cannot compare them directly using $R^2$ (it will increase monotionically). Instead we can use on the alternative criteria listed earlier. 
+Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. *Forward Selection* works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model's RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test $1 + \sum_{k=0}^{p-1}p - k  = 1 + \frac{p(p+1)}{2}$ models. In our College dataset, $p = 17$, so the total number of models we fit is $$1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154$$ This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing $R^2$ amongst the different possible models. At the end, we get $p+1$ models: $M_0, \dots, M_{17}$. Since these models do not have the same number of variables, we cannot compare them directly using $R^2$ (it will increase monotionically). Instead we can use one of the alternative metrics listed earlier. 
 
 ```{r}
 FWD.mod <- regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = "forward")
@@ -374,7 +374,7 @@ BEST_time
 FWD_time
 ```
 
-We can see that forward selection is on average a fe miliseconds faster than the full model selection. 
+We can see that forward selection is on average a few miliseconds faster than the full model selection. 
 
 Let's compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection. 
 
@@ -382,4 +382,4 @@ Let's compare the models they selected as determined by the BIC. Since the BIC w
 sum.FWD$which[10, ] == bmod.summary$which[10, ]
 ```
 
-It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimesnional data. 
+It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimensional data. 
