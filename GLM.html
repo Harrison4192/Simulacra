@@ -235,6 +235,11 @@ General Linear Models
 <li><a href="#specifying-the-link-function"><span class="toc-section-number">2.2</span> Specifying the Link Function</a></li>
 <li><a href="#specifying-your-own-link-function"><span class="toc-section-number">2.3</span> Specifying your own link function</a></li>
 </ul></li>
+<li><a href="#quasi-likelihood-and-the-generalized-linear-model"><span class="toc-section-number">3</span> Quasi-likelihood and the Generalized Linear Model</a><ul>
+<li><a href="#implementing-quasi-likelihood-in-r"><span class="toc-section-number">3.1</span> Implementing quasi-likelihood in R</a></li>
+<li><a href="#comparing-different-models"><span class="toc-section-number">3.2</span> Comparing different models</a></li>
+<li><a href="#wedderburns-quasi-likelihood-and-nelders-extension"><span class="toc-section-number">3.3</span> Wedderburn’s Quasi likelihood and Nelder’s extension</a></li>
+</ul></li>
 </ul>
 </div>
 
@@ -520,6 +525,285 @@ explink.mod</code></pre>
 ## Residual Deviance: 2.661     AIC: 10.25</code></pre>
 <pre class="r"><code>beta.mod &lt;- coef(explink.mod)</code></pre>
 <p>Using this link our estimate of <span class="math inline">\(\beta\)</span> is 8.6143241.</p>
+</div>
+</div>
+<div id="quasi-likelihood-and-the-generalized-linear-model" class="section level1">
+<h1><span class="header-section-number">3</span> Quasi-likelihood and the Generalized Linear Model</h1>
+<div id="implementing-quasi-likelihood-in-r" class="section level2">
+<h2><span class="header-section-number">3.1</span> Implementing quasi-likelihood in R</h2>
+<ul>
+<li><code>quasi</code> is a function that generates a family object containing a list of functions and expressions that can be used by <code>glm</code> and <code>gam</code>. It accepts two main arguments <code>link</code> and <code>variance</code>, which default to “identity” and “constant” if not specified.</li>
+</ul>
+<ol style="list-style-type: decimal">
+<li>The <code>quasi</code> family accepts the following links: <code>logit</code>, <code>probit</code>, <code>cloglog</code>, <code>identity</code>, <code>inverse</code>, <code>log</code>, <code>1/mu^2</code>, and <code>sqrt</code></li>
+</ol>
+<ul>
+<li>The <code>power</code> function creates a link object based on the link function <span class="math inline">\(\eta = \mu^{\lambda}\)</span>, where the argument for <span class="math inline">\(\lambda\)</span> is a real number. If <span class="math inline">\(\lambda &lt; 0\)</span> it is taken to be <span class="math inline">\(0\)</span>, and the log link is obtained. The default <code>lambda = 1</code> gives the identity link.</li>
+</ul>
+<ol start="2" style="list-style-type: decimal">
+<li>The variance argument accepts a character string that names the variance function to use with the <code>quasi</code> function. You can specify one of the following: <code>mu(1-mu)</code>, <code>mu</code>, <code>mu^2</code>, <code>mu^3</code>. Furthermore, the variance function is specific to the <code>quasi</code> function; other family functions have a fixed variance function and do not accept this parameter.</li>
+</ol>
+</div>
+<div id="comparing-different-models" class="section level2">
+<h2><span class="header-section-number">3.2</span> Comparing different models</h2>
+<p><img src="hw3pic.png"></p>
+<pre class="r"><code>my_data &lt;- data.frame(
+  x = c(1, 2, 3, 5, 8),
+  y = c(5, 12, 14, 35, 42)
+)
+
+
+model_constructor &lt;- function(family_object){
+  glm(y ~ x, family = family_object, data = my_data)
+}
+
+family_objects &lt;- list(gaussian,
+                       gaussian(link = &#39;log&#39;),
+                       poisson,
+                       poisson(link = &#39;log&#39;),
+                       quasi,
+                       quasi(link = &#39;log&#39;),
+                       quasi(variance = &#39;mu&#39;),
+                       quasi(link = &#39;log&#39;, variance = &#39;mu&#39;)
+                       )
+
+my_8_models &lt;- map(family_objects, model_constructor)
+
+names(my_8_models) &lt;-  c(&quot;g&quot;, &#39;gl&#39;, &#39;p&#39;, &#39;pl&#39;, &#39;q&#39;, &#39;ql&#39;, &#39;qmu&#39;, &#39;qlmu&#39;)
+
+summaries &lt;- map(my_8_models, summary)</code></pre>
+<p>Let’s examine the output of the gaussian model using the <code>summary</code> function</p>
+<pre class="r"><code>summaries[[1]]</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = y ~ x, family = family_object, data = my_data)
+## 
+## Deviance Residuals: 
+##       1        2        3        4        5  
+## -1.0000   0.4286  -3.1429   6.7143  -3.0000  
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)   
+## (Intercept)   0.4286     3.8109   0.112  0.91756   
+## x             5.5714     0.8396   6.635  0.00697 **
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for gaussian family taken to be 21.71429)
+## 
+##     Null deviance: 1021.200  on 4  degrees of freedom
+## Residual deviance:   65.143  on 3  degrees of freedom
+## AIC: 33.025
+## 
+## Number of Fisher Scoring iterations: 2</code></pre>
+<p>The goodness-of-fit of a glm model is described by the Null deviance, Residual deviance, and AIC metrics, where low values indicate a better fit. Let’s compare the fit of our models.</p>
+<pre class="r"><code>model_fits &lt;- map(my_8_models, extract, c(&quot;deviance&quot;, &quot;null.deviance&quot;, &quot;aic&quot;)) %&gt;% transpose() %&gt;% map(unlist) %&gt;% as_tibble() %&gt;% cbind(names(my_8_models)) %&gt;% rename(names =&quot;names(my_8_models)&quot;)
+knitr::kable(model_fits)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">deviance</th>
+<th align="right">null.deviance</th>
+<th align="right">aic</th>
+<th align="left">names</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">65.142857</td>
+<td align="right">1021.2000</td>
+<td align="right">33.02511</td>
+<td align="left">g</td>
+</tr>
+<tr class="even">
+<td align="right">161.186851</td>
+<td align="right">1021.2000</td>
+<td align="right">37.55502</td>
+<td align="left">gl</td>
+</tr>
+<tr class="odd">
+<td align="right">7.870696</td>
+<td align="right">48.7626</td>
+<td align="right">35.15431</td>
+<td align="left">p</td>
+</tr>
+<tr class="even">
+<td align="right">7.870696</td>
+<td align="right">48.7626</td>
+<td align="right">35.15431</td>
+<td align="left">pl</td>
+</tr>
+<tr class="odd">
+<td align="right">65.142857</td>
+<td align="right">1021.2000</td>
+<td align="right">NA</td>
+<td align="left">q</td>
+</tr>
+<tr class="even">
+<td align="right">161.186851</td>
+<td align="right">1021.2000</td>
+<td align="right">NA</td>
+<td align="left">ql</td>
+</tr>
+<tr class="odd">
+<td align="right">2.336588</td>
+<td align="right">48.7626</td>
+<td align="right">NA</td>
+<td align="left">qmu</td>
+</tr>
+<tr class="even">
+<td align="right">7.870696</td>
+<td align="right">48.7626</td>
+<td align="right">NA</td>
+<td align="left">qlmu</td>
+</tr>
+</tbody>
+</table>
+<p>Let’s see which models performed best and worst under each metric:</p>
+<pre class="r"><code>knitr::kable(model_fits %&gt;% select(deviance, names) %&gt;% arrange(deviance))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">deviance</th>
+<th align="left">names</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">2.336588</td>
+<td align="left">qmu</td>
+</tr>
+<tr class="even">
+<td align="right">7.870696</td>
+<td align="left">p</td>
+</tr>
+<tr class="odd">
+<td align="right">7.870696</td>
+<td align="left">pl</td>
+</tr>
+<tr class="even">
+<td align="right">7.870696</td>
+<td align="left">qlmu</td>
+</tr>
+<tr class="odd">
+<td align="right">65.142857</td>
+<td align="left">g</td>
+</tr>
+<tr class="even">
+<td align="right">65.142857</td>
+<td align="left">q</td>
+</tr>
+<tr class="odd">
+<td align="right">161.186851</td>
+<td align="left">gl</td>
+</tr>
+<tr class="even">
+<td align="right">161.186851</td>
+<td align="left">ql</td>
+</tr>
+</tbody>
+</table>
+<p>The quasi-likelihood with variance proportional to mean has the lowest deviance, whereas the quasi-likelihood with log link has the highest.</p>
+<pre class="r"><code>knitr::kable(model_fits %&gt;% select(null.deviance, names) %&gt;% arrange(null.deviance))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">null.deviance</th>
+<th align="left">names</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">48.7626</td>
+<td align="left">p</td>
+</tr>
+<tr class="even">
+<td align="right">48.7626</td>
+<td align="left">pl</td>
+</tr>
+<tr class="odd">
+<td align="right">48.7626</td>
+<td align="left">qmu</td>
+</tr>
+<tr class="even">
+<td align="right">48.7626</td>
+<td align="left">qlmu</td>
+</tr>
+<tr class="odd">
+<td align="right">1021.2000</td>
+<td align="left">g</td>
+</tr>
+<tr class="even">
+<td align="right">1021.2000</td>
+<td align="left">gl</td>
+</tr>
+<tr class="odd">
+<td align="right">1021.2000</td>
+<td align="left">q</td>
+</tr>
+<tr class="even">
+<td align="right">1021.2000</td>
+<td align="left">ql</td>
+</tr>
+</tbody>
+</table>
+<p>The null deviance is an even split, half the models performed well and the other half did not.</p>
+<pre class="r"><code>knitr::kable(model_fits %&gt;% select(aic, names) %&gt;% arrange(aic))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">aic</th>
+<th align="left">names</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">33.02511</td>
+<td align="left">g</td>
+</tr>
+<tr class="even">
+<td align="right">35.15431</td>
+<td align="left">p</td>
+</tr>
+<tr class="odd">
+<td align="right">35.15431</td>
+<td align="left">pl</td>
+</tr>
+<tr class="even">
+<td align="right">37.55502</td>
+<td align="left">gl</td>
+</tr>
+<tr class="odd">
+<td align="right">NA</td>
+<td align="left">q</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">ql</td>
+</tr>
+<tr class="odd">
+<td align="right">NA</td>
+<td align="left">qmu</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="left">qlmu</td>
+</tr>
+</tbody>
+</table>
+<p>It looks like the standard gaussian with identity link has the lowest aic, a metric which is not avaialable for quasi likelihoods.</p>
+</div>
+<div id="wedderburns-quasi-likelihood-and-nelders-extension" class="section level2">
+<h2><span class="header-section-number">3.3</span> Wedderburn’s Quasi likelihood and Nelder’s extension</h2>
+<p>Quasi-likelihood estimation is one way of allowing for overdispersion, that is, greater variability in the data than would be expected from the statistical model used. It is most often used with models for count data or grouped binary data, i.e. data that would otherwise be modelled using the Poisson or binomial distribution. Instead of specifying a probability distribution for the data, only a relationship between the mean and the variance is specified in the form of a variance function giving the variance as a function of the mean.Wedderburn relaxes the assumption of a known variance function of <span class="math inline">\(y\)</span> by allowing an unknown constant of proportionality <span class="math inline">\(\phi\)</span> so that <span class="math inline">\(var(y) = \phi V(\mu)\)</span>. This <span class="math inline">\(\phi\)</span> is known as the <em>dispersion</em> parameter and does not alter the estimation of the regression coefficients <span class="math inline">\(\beta\)</span>. Wedderburn defines this quasi-likelihood function for an observation <span class="math inline">\(y\)</span> with mean <span class="math inline">\(\mu\)</span> and variance <span class="math inline">\(V(\mu)\)</span> as <span class="math display">\[Q(y; \mu) = \int^{\mu}\frac{y-\mu}{V(\mu)}d\mu\]</span> The likelihood of the sample of <span class="math inline">\(N\)</span> observations is <span class="math inline">\(\sum_{i=1}^NQ(y_i,\mu_i)\)</span>.</p>
+<p>Nelder defines an extended likelihood function <span class="math display">\[Q^+(y; \mu) = -\frac{1}{2}log\{2\pi\phi V(y)\} - \frac{D(y;\mu)}{\phi}\]</span> where <span class="math inline">\(D\)</span> is the deviance function, and <span class="math inline">\(\phi\)</span> is the nuisance parameter. The estimates of <span class="math inline">\(\beta\)</span> obtainted by maximizing <span class="math inline">\(Q^+\)</span> are the same as those from maximizing <span class="math inline">\(Q\)</span> and the estimate of <span class="math inline">\(\phi\)</span> obtained from maximizing <span class="math inline">\(Q^+\)</span> is <span class="math inline">\(\hat{\phi} = D(y;\hat{\mu})\)</span>.</p>
+<p>References:</p>
+<ul>
+<li><em>An Extended Quasi-Likelihood Function</em> Nelder, Pregibon (1987)</li>
+<li><a href="https://en.wikipedia.org/wiki/Quasi-likelihood">Wikipedia: Quasi-Likelihood</a></li>
+<li><a href="https://www.rdocumentation.org/packages/stats/versions/3.4.1/topics/power">R documentation: power function</a></li>
+<li><a href="http://stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html">R documentation: Family Objects for Models</a></li>
+</ul>
 </div>
 </div>
 

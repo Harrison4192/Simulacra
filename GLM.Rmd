@@ -208,3 +208,99 @@ beta.mod <- coef(explink.mod)
 
 Using this link our estimate of $\beta$ is `r beta.mod`. 
 
+# Quasi-likelihood and the Generalized Linear Model
+
+## Implementing quasi-likelihood in R
+
+
+- `quasi` is a function that generates a family object containing a list of functions and expressions that can be used by `glm` and `gam`. It accepts two main arguments `link` and `variance`, which default to "identity" and "constant" if not specified. 
+
+1. The `quasi` family accepts the following links: `logit`, `probit`, `cloglog`, `identity`, `inverse`, `log`, `1/mu^2`, and `sqrt`
+
+- The `power` function creates a link object based on the link function $\eta = \mu^{\lambda}$, where the argument for $\lambda$ is a real number. If $\lambda < 0$ it is taken to be $0$, and the log link is obtained. The default `lambda = 1` gives the identity link.
+
+2. The variance argument accepts a character string that names the variance function to use with the `quasi` function. You can specify one of the following: `mu(1-mu)`, `mu`, `mu^2`, `mu^3`. Furthermore, the variance function is specific to the `quasi` function; other family functions have a fixed variance function and do not accept this parameter. 
+
+## Comparing different models
+
+<img src="hw3pic.png">
+
+```{r}
+my_data <- data.frame(
+  x = c(1, 2, 3, 5, 8),
+  y = c(5, 12, 14, 35, 42)
+)
+
+
+model_constructor <- function(family_object){
+  glm(y ~ x, family = family_object, data = my_data)
+}
+
+family_objects <- list(gaussian,
+                       gaussian(link = 'log'),
+                       poisson,
+                       poisson(link = 'log'),
+                       quasi,
+                       quasi(link = 'log'),
+                       quasi(variance = 'mu'),
+                       quasi(link = 'log', variance = 'mu')
+                       )
+
+my_8_models <- map(family_objects, model_constructor)
+
+names(my_8_models) <-  c("g", 'gl', 'p', 'pl', 'q', 'ql', 'qmu', 'qlmu')
+
+summaries <- map(my_8_models, summary)
+
+
+```
+
+Let's examine the output of the gaussian model using the `summary` function
+
+```{r}
+summaries[[1]]
+```
+
+The goodness-of-fit of a glm model is described by the Null deviance,  Residual deviance, and AIC metrics, where low values indicate a better fit. Let's compare the fit of our models.
+
+```{r}
+model_fits <- map(my_8_models, extract, c("deviance", "null.deviance", "aic")) %>% transpose() %>% map(unlist) %>% as_tibble() %>% cbind(names(my_8_models)) %>% rename(names ="names(my_8_models)")
+knitr::kable(model_fits)
+```
+
+
+Let's see which models performed best and worst under each metric:
+
+```{r}
+knitr::kable(model_fits %>% select(deviance, names) %>% arrange(deviance))
+```
+
+The quasi-likelihood with variance proportional to mean has the lowest deviance, whereas the quasi-likelihood with log link has the highest. 
+
+
+
+```{r}
+knitr::kable(model_fits %>% select(null.deviance, names) %>% arrange(null.deviance))
+```
+
+The null deviance is an even split, half the models performed well and the other half did not.
+
+```{r}
+knitr::kable(model_fits %>% select(aic, names) %>% arrange(aic))
+```
+
+It looks like the standard gaussian with identity link has the lowest aic, a metric which is not avaialable for quasi likelihoods. 
+
+## Wedderburn's Quasi likelihood and Nelder's extension
+
+Quasi-likelihood estimation is one way of allowing for overdispersion, that is, greater variability in the data than would be expected from the statistical model used. It is most often used with models for count data or grouped binary data, i.e. data that would otherwise be modelled using the Poisson or binomial distribution. Instead of specifying a probability distribution for the data, only a relationship between the mean and the variance is specified in the form of a variance function giving the variance as a function of the mean.Wedderburn relaxes the assumption of a known variance function of $y$ by allowing an unknown constant of proportionality $\phi$  so that $var(y) = \phi V(\mu)$. This $\phi$ is known as the *dispersion* parameter and does not alter the estimation of the regression coefficients $\beta$. Wedderburn defines this quasi-likelihood function for an observation $y$ with mean $\mu$ and variance $V(\mu)$ as $$Q(y; \mu) = \int^{\mu}\frac{y-\mu}{V(\mu)}d\mu$$ The likelihood of the sample of $N$ observations is $\sum_{i=1}^NQ(y_i,\mu_i)$. 
+
+Nelder defines an extended likelihood function $$Q^+(y; \mu) = -\frac{1}{2}log\{2\pi\phi V(y)\} - \frac{D(y;\mu)}{\phi}$$ where $D$ is the deviance function, and $\phi$ is the nuisance parameter. The estimates of $\beta$ obtainted by maximizing $Q^+$ are the same as those from maximizing $Q$ and the estimate of $\phi$ obtained from maximizing $Q^+$ is $\hat{\phi} = D(y;\hat{\mu})$.
+
+References: 
+
+- *An Extended Quasi-Likelihood Function* Nelder, Pregibon (1987)
+- [Wikipedia: Quasi-Likelihood](https://en.wikipedia.org/wiki/Quasi-likelihood)
+- [R documentation: power function](https://www.rdocumentation.org/packages/stats/versions/3.4.1/topics/power)
+- [R documentation: Family Objects for Models](http://stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html)
+
