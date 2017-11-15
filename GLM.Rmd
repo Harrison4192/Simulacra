@@ -2,6 +2,7 @@
 title: <p style="color:purple;">General Linear Models</p>
 author:
   - "Harrison Tietze"
+date: "Fall 2017"
 output: 
   html_document:
     toc: yes

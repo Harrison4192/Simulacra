@@ -20,3 +20,6 @@ leaps
 bindrcpp
 microbenchmark
 tree
+randomForest
+survival
+gbm

@@ -1,6 +1,7 @@
 ---
-title: "Simulation"
+title: "Statistical Simulation"
 author: "Harrison Tietze"
+date: "Fall 2017"
 output:
   html_document:
     toc: yes

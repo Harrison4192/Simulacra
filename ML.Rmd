@@ -20,7 +20,7 @@ library(magrittr)
 library(microbenchmark)
 ```
 
-reference: [Introduction to Statistical learning](https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&qid=1510705551&sr=8-1&keywords=introduction+to+statistical+learning) (2015) *Tibshirani, Hastie*
+reference: [Introduction to Statistical learning](https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&qid=1510705551&sr=8-1&keywords=introduction+to+statistical+learning) (2013) *Tibshirani, Hastie*
 
 #Regression Models
 
@@ -64,22 +64,22 @@ Y.test <- Y[-train]
 Let's fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
 
 ```{r}
-OLS.mod <- lm(Apps ~ . , data = data_df)
+LM.mod <- lm(Apps ~ . , data = data_df)
 
-OLS.pred <- predict(OLS.mod, newx = X.test)
+LM.pred <- predict(LM.mod, newx = X.test)
 
 RMSE <- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
 
 Percent.Error <- function(x){RMSE(x)/mean(Y) * 100}
 
-OLS.RMSE <- RMSE(OLS.pred)
-OLS.Percent.Err <- Percent.Error(OLS.pred)
+LM.RMSE <- RMSE(LM.pred)
+OLS.Percent.Err <- Percent.Error(LM.pred)
 
-results <- tibble(model = "OLS",
-                  RMSE = OLS.RMSE,
+my_results <- tibble(model = "OLS",
+                  RMSE = LM.RMSE,
                   )
 
-knitr::kable(results, digits = 3)
+knitr::kable(my_results, digits = 3)
 ```
 
 The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%, we can infer our error is quite high. 
@@ -181,9 +181,9 @@ We can see that some of the variables have been dropped.
 ```{r}
 lasso.RMSE <- RMSE(lasso.pred)
 
-results <- rbind(results, list("Ridge", ridge.RMSE), list("Lasso", lasso.RMSE))
+my_results <- rbind(my_results, list("Ridge", ridge.RMSE), list("Lasso", lasso.RMSE))
 
-knitr::kable(results, digits = 3)
+knitr::kable(my_results, digits = 3)
 
 ```
 
@@ -211,9 +211,9 @@ The summary which reveals the training error and variance explained per number o
 ```{r}
 PCR.pred <- predict(PCR.mod, X.test, ncomp = 3)
 PCR.RMSE <- RMSE(PCR.pred)
-results <- rbind(results,  list("PCR", PCR.RMSE))
+my_results <- rbind(my_results,  list("PCR", PCR.RMSE))
 
-knitr::kable(results, digits = 3)
+knitr::kable(my_results, digits = 3)
 
 ```
 
@@ -233,8 +233,8 @@ We can see that 3 components explains about 93% of the variance and gives a low 
 ```{r}
 PLS.pred <- predict(PLS.mod, X.test, ncomp = 3)
 PLS.RMSE <- RMSE(PLS.pred)
-results <- rbind(results, list("PLS", PLS.RMSE))
-knitr::kable(results, digits = 3)
+my_results <- rbind(my_results, list("PLS", PLS.RMSE))
+knitr::kable(my_results, digits = 3)
 ```
 
 Since PLS supervises the choice of components, it can be more effective than PCR for a regression problem when using less components. Notice how the RMSE at 1 component is alsmost 3 times that for PCR than PLS, but it becomes about equal for the inclusion of more components.  
@@ -266,7 +266,7 @@ trainControl <- trainControl(method="cv", number=5)
 caret_names <- list("lm", "lasso", "ridge", "glmnet", "pcr", "pls", "lars")
 ```
 
-Now I write a short pipeline to run the `my_caret` function on the list of method names and display the results in a nice table.  
+Now I write a short pipeline to run the `my_caret` function on the list of method names and display the my_results in a nice table.  
 
 ```{r}
 map(caret_names, my_caret) %>%
@@ -280,7 +280,7 @@ map(caret_names, my_caret) %>%
 knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = "Result produced by Caret. Models arranged by RMSE.")
 ```
 
-The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods. 
+The my_results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods. 
 
 # Subset selection
 
@@ -350,7 +350,7 @@ Let's interperet each of these statistics (exact formulas can be looked up):
 
 ##Forward Selection
 
-Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. *Forward Selection* works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model's RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test $1 + \sum_{k=0}^{p-1}p - k  = 1 + \frac{p(p+1)}{2}$ models. In our College dataset, $p = 17$, so the total number of models we fit is $$1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154$$ This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing $R^2$ amongst the different possible models. At the end, we get $p+1$ models: $M_0, \dots, M_{17}$. Since these models do not have the same number of variables, we cannot compare them directly using $R^2$ (it will increase monotionically). Instead we can use one of the alternative metrics listed earlier. 
+Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. *Forward Selection* works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model's RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This my_results in having to test $1 + \sum_{k=0}^{p-1}p - k  = 1 + \frac{p(p+1)}{2}$ models. In our College dataset, $p = 17$, so the total number of models we fit is $$1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154$$ This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing $R^2$ amongst the different possible models. At the end, we get $p+1$ models: $M_0, \dots, M_{17}$. Since these models do not have the same number of variables, we cannot compare them directly using $R^2$ (it will increase monotionically). Instead we can use one of the alternative metrics listed earlier. 
 
 ```{r}
 FWD.mod <- regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = "forward")
@@ -386,7 +386,7 @@ Let's compare the models they selected as determined by the BIC. Since the BIC w
 sum.FWD$which[10, ] == bmod.summary$which[10, ]
 ```
 
-It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimensional data. 
+It looks like both methods give the same my_results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. my_results may vary for large high-dimensional data. 
 
 #Decision Trees
 
@@ -458,9 +458,13 @@ Explanation of the output: `size` refers to the number of terminal nodes in the 
 We set `FUN = prune.misclass`to indicate that classification error is what guides the tuning process, as opposed to the default metric: deviance. 
 
 ```{r}
-cv_df <- as.data.frame(cv.college[c('size', 'dev', 'k')]) %>% gather(key = "metric", value = "value") %>% mutate(index = rep(1:length(cv.college$size), 3))
-ggplot(data = cv_df, aes(x = index, y = value, col = metric)) +
-  geom_line()
+ 
+  
+plot_cv <- function(cv_object){  as.data.frame(cv_object[c('size', 'dev', 'k')]) %>% gather(key = "metric", value = "value") %>% mutate(index = rep(1:length(cv_object$size), 3)) %>%
+ggplot(data = ., aes(x = index, y = value, col = metric)) +
+  geom_line()}
+
+plot_cv(cv.college)
 ```
 
 It looks like the CV error is minimized for $k = 13$ and $size = 4$ 
@@ -486,3 +490,133 @@ error_rate(prune.table)
 ```
 
 Interestingly we have the same exact test error! If you compare both tables, you can see that the numbers are different but the sums are the same, yielding the same fraction. Now we have a much more interpretable tree with the same exact performance. 
+
+## Fitting Regression Trees
+
+Regression trees work much like classification trees, except that we estimate points by taking the average of the training responses of the region that it falls into, whereas in classification we took the majority vote. Let's see how a regression tree performs on our college dataset. 
+
+```{r}
+set.seed(1)
+rtree.college <- tree(Apps ~ ., subset = train, data = College)
+summary(rtree.college)
+```
+
+
+```{r}
+plot(rtree.college)
+text(rtree.college, pretty = 0)
+```
+
+Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The *residual mean deviance* is just the mean squared error for the tree. `Accept` refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with `Apps` which is the number of applications received. I did not expect that `Top25perc`, which is the percentage of students in the top 25% of their high school class, would be the other important variable; however, it is only used in one split. 
+
+```{r}
+rtree.yhat <- predict(rtree.college, College[-train, ])
+TREE.RMSE <- RMSE(rtree.yhat)
+TREE.RMSE
+```
+
+
+
+```{r}
+rcv.college = cv.tree(rtree.college)
+plot_cv(rcv.college)
+rcv.college
+```
+It looks like the best trees are of size 1 and size 5. The function threw an error when I tried to make predictions using a single-node tree, so we will use the tree of size 5.
+
+```{r}
+rprune.college <- prune.tree(rtree.college, best = 5)
+
+plot(rprune.college)
+text(rprune.college, pretty = 0)
+
+rcollege.pred = predict(rprune.college, newdata = College[-train, ])
+
+RMSE(rcollege.pred)
+```
+
+Noice that this performs worse than the whole tree. In fact, the performance decreases as the size of the tree decreases, so we will keep the full model. 
+
+```{r}
+my_results <- rbind(my_results, list("Tree", TREE.RMSE)) %>% arrange(RMSE)
+knitr::kable(my_results, digits = 3)
+```
+
+We can see that the regression tree performs worse than the optimized linear regression models. Perhaps we can infer that a linear decision boundary is a better fit for this data set. The tree will perform better when the predictor space can be divided up into rectangular regions.
+
+<img src="treefit.png">
+
+## Bagging
+
+Bagging is a technique to reduce the variance of a statistical learning procedure. If we fit a deep tree to the data, we may have overfitting, so the model will not generalize well. However, if we fit many trees and average the results we will have lower variance when generalizing. Bagging stands for *bootstrap aggregation* and works as follows: Take $B$ bootstrap samples and fit a full tree to each sample. Our prediction for an observation $x$ is $$\hat{f}_{bag}(x)=\frac{1}{B}\sum_{b=1}^B\hat{f}^{*b}(x)$$
+
+```{r}
+library(randomForest)
+set.seed(1)
+bag.college <- randomForest(Apps ~ ., data = College, subset = train, mtry = 17, importance = TRUE)
+bag.college
+varImpPlot(bag.college)
+```
+
+To discuss these error metrics, we need to discuss $OOB$: out-of-bag observations. For each observation, it will be left out of about $B/3$ bootstrap sample, and is said to be an out-of-bag observation. TWe can estimate the error of a single observation by finding the residual each time it was out of bag, and averaging them. The root mean square of these residuals estimates the test error. The `%IncMSE` reports the mean decrease of accuracy in predictions on the out-of-bag samples when a given variable is excluded from the model, where the $OOB$ sample is the observations left out when we take a bootstrap sample. The `IncNodePurity` is a measure of the total decrease in node impurity that results from splits on that variable, averaged over all trees. In case of regression trees, node impurity is measured using RSS
+
+Note that bagging is a special case of random forests where all the predictors are used, so we can call the `randomForest` function and specify `mtry = 17`. 
+
+```{r}
+yhat.bag <- predict(bag.college, newdata = College[-train, ])
+RMSE(yhat.bag)
+```
+
+This is an improvement over the plain regression tree. 
+
+## Random Forests
+
+Random forest provide an improvement over bagging by *decorrelating* the trees. With a random foresst, you are only allowedd to consider a subset of predictors during each split. For example, in our bagging model, for each split consider which of the 17 predictors will yield a greatest decrease in residual error and we split that predictor. With random forests we choose a smaller number, usually $\sqrt{p}$ for classification and $p/3$ for regressoin, so in this case $6$ predictors. During each split we choose another random sample of $6$ predictors from our original 17 and only consider the best split amongst those predictors. This decorrelates the trees especially when you have a couple of very strong predictors driving the splits. Then if you fit 500 trees, they'll have similar specifications even if the bootstrapped samples are different. Random forests ensure you are considering the contributions of each predictor in making the best decision. 
+
+```{r}
+set.seed(1)
+rf.college <- randomForest(Apps ~ ., data = College, subset = train, mtry = 6, importance = TRUE)
+yhat.rf = predict(rf.college, newdata = College[-train, ])
+RMSE(yhat.rf)
+
+```
+
+The random forest did not improve over bagging. 
+
+```{r}
+importance(rf.college)
+varImpPlot(rf.college)
+```
+
+The three clear most important variables are the number of accepted applicants, number of new students enrolled, and number of fulltime undergraduates. Even though the performance on this test set was not much better than bagging, I believe this model would generalize much better. The bagging model was dominated by the `Accept` predictor and did not properly weight the contributions of `Enroll` and `F.Undergrad`, even though they were still identified as the most important. Instead the mysterious `Top25perc` found its way to the top, just like in the original tree. 
+
+## Boosting
+
+Boosting is a "slow learning" method creates an additive model after training trees on bootstrapped samples.. The algorithm for boosting begins by assuming that your prediction for yhat is 0, so your residual is yhat - 0 = yhat. It fits a tree on each bootstrapped sample, each time adding a small increment to yhat, and decreasing the residual. Each prediction is actually the sum of small predictions made on each bootstrapped set, where each new prediction is made in order to decrease the residual slightly more. The output is the boosted additive model. Here is the algorithm as shown in the ISLR book: 
+
+<img src="boosting.png">
+
+Lambda is the shrinkage parameter applied to each boostrap prediction. The parameter $d$, called the ineraction depth,  can be quite small, and results in fitting small trees. By fitting small trees to the residual, we slowly improve f.hat in areas where it does not perform well. Since each tree takes into account trees that have already been grown, small trees are sufficient, which makes this model much different from the bagging approach. 
+
+```{r}
+library(gbm)
+set.seed(1)
+boost.college <- gbm(Apps ~ ., data = College[-train, ], distribution = "gaussian", n.trees = 5000, interaction.depth = 4)
+summary(boost.college)
+```
+
+Note that the distribution assumed on the response is gaussian, since this is a regression problem (bernoulli for classification), and the shrinkage parameter is by default set to $.001$. The relative influence plot confirms that accept and enroll are by far the most important variables. 
+
+```{r}
+yhat.boost <- predict(boost.college, newdata = College[-train, ], n.trees = 5000)
+BOOST.RMSE <- RMSE(yhat.boost)
+BOOST.RMSE
+```
+
+Boosting well outperforms the random forest approach and is on par with ridge regression. 
+
+```{r}
+my_results <- rbind(my_results, list("Boost", BOOST.RMSE)) %>% arrange(RMSE)
+knitr::kable(my_results, digits = 3)
+```
+

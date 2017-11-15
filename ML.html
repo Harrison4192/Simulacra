@@ -240,11 +240,15 @@ $(document).ready(function () {
 <li><a href="#decision-trees"><span class="toc-section-number">4</span> Decision Trees</a><ul>
 <li><a href="#fitting-classification-trees"><span class="toc-section-number">4.1</span> Fitting Classification Trees</a></li>
 <li><a href="#cost-complexity-pruning"><span class="toc-section-number">4.2</span> Cost-complexity pruning</a></li>
+<li><a href="#fitting-regression-trees"><span class="toc-section-number">4.3</span> Fitting Regression Trees</a></li>
+<li><a href="#bagging"><span class="toc-section-number">4.4</span> Bagging</a></li>
+<li><a href="#random-forests"><span class="toc-section-number">4.5</span> Random Forests</a></li>
+<li><a href="#boosting"><span class="toc-section-number">4.6</span> Boosting</a></li>
 </ul></li>
 </ul>
 </div>
 
-<p>reference: <a href="https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&amp;qid=1510705551&amp;sr=8-1&amp;keywords=introduction+to+statistical+learning">Introduction to Statistical learning</a> (2015) <em>Tibshirani, Hastie</em></p>
+<p>reference: <a href="https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&amp;qid=1510705551&amp;sr=8-1&amp;keywords=introduction+to+statistical+learning">Introduction to Statistical learning</a> (2013) <em>Tibshirani, Hastie</em></p>
 <div id="regression-models" class="section level1">
 <h1><span class="header-section-number">1</span> Regression Models</h1>
 <div id="glmnet" class="section level2">
@@ -285,22 +289,22 @@ Y.train &lt;- Y[train]
 X.test &lt;- X[-train, ]
 Y.test &lt;- Y[-train]</code></pre>
 <p>Let’s fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
-<pre class="r"><code>OLS.mod &lt;- lm(Apps ~ . , data = data_df)
+<pre class="r"><code>LM.mod &lt;- lm(Apps ~ . , data = data_df)
 
-OLS.pred &lt;- predict(OLS.mod, newx = X.test)
+LM.pred &lt;- predict(LM.mod, newx = X.test)
 
 RMSE &lt;- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
 
 Percent.Error &lt;- function(x){RMSE(x)/mean(Y) * 100}
 
-OLS.RMSE &lt;- RMSE(OLS.pred)
-OLS.Percent.Err &lt;- Percent.Error(OLS.pred)
+LM.RMSE &lt;- RMSE(LM.pred)
+OLS.Percent.Err &lt;- Percent.Error(LM.pred)
 
-results &lt;- tibble(model = &quot;OLS&quot;,
-                  RMSE = OLS.RMSE,
+my_results &lt;- tibble(model = &quot;OLS&quot;,
+                  RMSE = LM.RMSE,
                   )
 
-knitr::kable(results, digits = 3)</code></pre>
+knitr::kable(my_results, digits = 3)</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -434,9 +438,9 @@ lasso.pred &lt;- predict(lasso.mod, s=lasso.lam, newx = X.test)</code></pre>
 <p>We can see that some of the variables have been dropped.</p>
 <pre class="r"><code>lasso.RMSE &lt;- RMSE(lasso.pred)
 
-results &lt;- rbind(results, list(&quot;Ridge&quot;, ridge.RMSE), list(&quot;Lasso&quot;, lasso.RMSE))
+my_results &lt;- rbind(my_results, list(&quot;Ridge&quot;, ridge.RMSE), list(&quot;Lasso&quot;, lasso.RMSE))
 
-knitr::kable(results, digits = 3)</code></pre>
+knitr::kable(my_results, digits = 3)</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -447,7 +451,7 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">7.852</td>
+<td align="right">191.326</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
@@ -501,9 +505,9 @@ validationplot(PCR.mod, val.type = &quot;MSEP&quot;)</code></pre>
 <p>The summary which reveals the training error and variance explained per number of components included, further shows that including more than 6 components gives no benefit. However it may be best to use even less components to create a better model. Three components should work, since it explains 93% of the variance.</p>
 <pre class="r"><code>PCR.pred &lt;- predict(PCR.mod, X.test, ncomp = 3)
 PCR.RMSE &lt;- RMSE(PCR.pred)
-results &lt;- rbind(results,  list(&quot;PCR&quot;, PCR.RMSE))
+my_results &lt;- rbind(my_results,  list(&quot;PCR&quot;, PCR.RMSE))
 
-knitr::kable(results, digits = 3)</code></pre>
+knitr::kable(my_results, digits = 3)</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -514,7 +518,7 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">7.852</td>
+<td align="right">191.326</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
@@ -568,8 +572,8 @@ summary(PLS.mod)</code></pre>
 <p>We can see that 3 components explains about 93% of the variance and gives a low training RMSE. It’s better to keep the amount of components lowe to decrease the variance of the model, even if more components give slightly lower training RMSE.</p>
 <pre class="r"><code>PLS.pred &lt;- predict(PLS.mod, X.test, ncomp = 3)
 PLS.RMSE &lt;- RMSE(PLS.pred)
-results &lt;- rbind(results, list(&quot;PLS&quot;, PLS.RMSE))
-knitr::kable(results, digits = 3)</code></pre>
+my_results &lt;- rbind(my_results, list(&quot;PLS&quot;, PLS.RMSE))
+knitr::kable(my_results, digits = 3)</code></pre>
 <table>
 <thead>
 <tr class="header">
@@ -580,7 +584,7 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">7.852</td>
+<td align="right">191.326</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
@@ -626,7 +630,7 @@ trainControl &lt;- trainControl(method=&quot;cv&quot;, number=5)
   }
   
 caret_names &lt;- list(&quot;lm&quot;, &quot;lasso&quot;, &quot;ridge&quot;, &quot;glmnet&quot;, &quot;pcr&quot;, &quot;pls&quot;, &quot;lars&quot;)</code></pre>
-<p>Now I write a short pipeline to run the <code>my_caret</code> function on the list of method names and display the results in a nice table.</p>
+<p>Now I write a short pipeline to run the <code>my_caret</code> function on the list of method names and display the my_results in a nice table.</p>
 <pre class="r"><code>map(caret_names, my_caret) %&gt;%
   transpose() %&gt;% 
   map(unlist) %&gt;% 
@@ -675,7 +679,7 @@ knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = &quot;Result pr
 </tr>
 </tbody>
 </table>
-<p>The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods.</p>
+<p>The my_results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods.</p>
 </div>
 <div id="subset-selection" class="section level1">
 <h1><span class="header-section-number">3</span> Subset selection</h1>
@@ -774,7 +778,7 @@ c(map_dbl(best_df[c(&quot;adjr2&quot;, &quot;rsq&quot;)], which.max), map_dbl(be
 </div>
 <div id="forward-selection" class="section level2">
 <h2><span class="header-section-number">3.3</span> Forward Selection</h2>
-<p>Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. <em>Forward Selection</em> works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model’s RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This results in having to test <span class="math inline">\(1 + \sum_{k=0}^{p-1}p - k = 1 + \frac{p(p+1)}{2}\)</span> models. In our College dataset, <span class="math inline">\(p = 17\)</span>, so the total number of models we fit is <span class="math display">\[1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154\]</span> This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing <span class="math inline">\(R^2\)</span> amongst the different possible models. At the end, we get <span class="math inline">\(p+1\)</span> models: <span class="math inline">\(M_0, \dots, M_{17}\)</span>. Since these models do not have the same number of variables, we cannot compare them directly using <span class="math inline">\(R^2\)</span> (it will increase monotionically). Instead we can use one of the alternative metrics listed earlier.</p>
+<p>Clearly Best Subset selection is very computationally intensive, so shorter alternatives have been developed. <em>Forward Selection</em> works by adding in the best variable at each stage. That is, it chooses to include the variable that minimizes the model’s RSS, and then keeps that variable while choosing a new one from the remaining variables, until all are used. This my_results in having to test <span class="math inline">\(1 + \sum_{k=0}^{p-1}p - k = 1 + \frac{p(p+1)}{2}\)</span> models. In our College dataset, <span class="math inline">\(p = 17\)</span>, so the total number of models we fit is <span class="math display">\[1 + 17 + 16 + \dots + 2 + 1 = 1 + \frac{(17)(18)}{2} = 154\]</span> This is substantially less computation. Note that the additional one is from fitting the null model. At each stage the best variable is chosen by comparing <span class="math inline">\(R^2\)</span> amongst the different possible models. At the end, we get <span class="math inline">\(p+1\)</span> models: <span class="math inline">\(M_0, \dots, M_{17}\)</span>. Since these models do not have the same number of variables, we cannot compare them directly using <span class="math inline">\(R^2\)</span> (it will increase monotionically). Instead we can use one of the alternative metrics listed earlier.</p>
 <pre class="r"><code>FWD.mod &lt;- regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
 
 sum.FWD &lt;- summary(FWD.mod)
@@ -807,7 +811,7 @@ show_metrics(sum.FWD)</code></pre>
 ##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE 
 ##         PhD    Terminal   S.F.Ratio perc.alumni      Expend   Grad.Rate 
 ##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE</code></pre>
-<p>It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimensional data.</p>
+<p>It looks like both methods give the same my_results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. my_results may vary for large high-dimensional data.</p>
 </div>
 </div>
 <div id="decision-trees" class="section level1">
@@ -873,9 +877,11 @@ cv.college</code></pre>
 ## attr(,&quot;class&quot;)
 ## [1] &quot;prune&quot;         &quot;tree.sequence&quot;</code></pre>
 <p>Explanation of the output: <code>size</code> refers to the number of terminal nodes in the tree, <code>dev</code> is the CV error, <code>k</code> is the tuning parameter <span class="math inline">\(\alpha\)</span>. We set <code>FUN = prune.misclass</code>to indicate that classification error is what guides the tuning process, as opposed to the default metric: deviance.</p>
-<pre class="r"><code>cv_df &lt;- as.data.frame(cv.college[c(&#39;size&#39;, &#39;dev&#39;, &#39;k&#39;)]) %&gt;% gather(key = &quot;metric&quot;, value = &quot;value&quot;) %&gt;% mutate(index = rep(1:length(cv.college$size), 3))
-ggplot(data = cv_df, aes(x = index, y = value, col = metric)) +
-  geom_line()</code></pre>
+<pre class="r"><code>plot_cv &lt;- function(cv_object){  as.data.frame(cv_object[c(&#39;size&#39;, &#39;dev&#39;, &#39;k&#39;)]) %&gt;% gather(key = &quot;metric&quot;, value = &quot;value&quot;) %&gt;% mutate(index = rep(1:length(cv_object$size), 3)) %&gt;%
+ggplot(data = ., aes(x = index, y = value, col = metric)) +
+  geom_line()}
+
+plot_cv(cv.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
 <p>It looks like the CV error is minimized for <span class="math inline">\(k = 13\)</span> and <span class="math inline">\(size = 4\)</span></p>
 <p>Now we can apply the <code>prune.misclass</code> function to obtain this tree:</p>
@@ -894,6 +900,230 @@ prune.table &lt;- table(prune.pred, Private.test)</code></pre>
 <pre class="r"><code>error_rate(prune.table)</code></pre>
 <pre><code>## [1] 0.1286449</code></pre>
 <p>Interestingly we have the same exact test error! If you compare both tables, you can see that the numbers are different but the sums are the same, yielding the same fraction. Now we have a much more interpretable tree with the same exact performance.</p>
+</div>
+<div id="fitting-regression-trees" class="section level2">
+<h2><span class="header-section-number">4.3</span> Fitting Regression Trees</h2>
+<p>Regression trees work much like classification trees, except that we estimate points by taking the average of the training responses of the region that it falls into, whereas in classification we took the majority vote. Let’s see how a regression tree performs on our college dataset.</p>
+<pre class="r"><code>set.seed(1)
+rtree.college &lt;- tree(Apps ~ ., subset = train, data = College)
+summary(rtree.college)</code></pre>
+<pre><code>## 
+## Regression tree:
+## tree(formula = Apps ~ ., data = College, subset = train)
+## Variables actually used in tree construction:
+## [1] &quot;Accept&quot;   &quot;Terminal&quot;
+## Number of terminal nodes:  6 
+## Residual mean deviance:  494400 = 92940000 / 188 
+## Distribution of residuals:
+##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+## -2705.00  -278.90   -48.86     0.00   252.60  2641.00</code></pre>
+<pre class="r"><code>plot(rtree.college)
+text(rtree.college, pretty = 0)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-39-1.png" width="672" /></p>
+<p>Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The <em>residual mean deviance</em> is just the mean squared error for the tree. <code>Accept</code> refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with <code>Apps</code> which is the number of applications received. I did not expect that <code>Top25perc</code>, which is the percentage of students in the top 25% of their high school class, would be the other important variable; however, it is only used in one split.</p>
+<pre class="r"><code>rtree.yhat &lt;- predict(rtree.college, College[-train, ])
+TREE.RMSE &lt;- RMSE(rtree.yhat)
+TREE.RMSE</code></pre>
+<pre><code>## [1] 86.72674</code></pre>
+<pre class="r"><code>rcv.college = cv.tree(rtree.college)
+plot_cv(rcv.college)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
+<pre class="r"><code>rcv.college</code></pre>
+<pre><code>## $size
+## [1] 6 5 4 3 2 1
+## 
+## $dev
+## [1]  206528072  261507688  271044847  333058756  866956674 2108880939
+## 
+## $k
+## [1]       -Inf   39821400   46426080   61370067  420325498 1409275406
+## 
+## $method
+## [1] &quot;deviance&quot;
+## 
+## attr(,&quot;class&quot;)
+## [1] &quot;prune&quot;         &quot;tree.sequence&quot;</code></pre>
+<p>It looks like the best trees are of size 1 and size 5. The function threw an error when I tried to make predictions using a single-node tree, so we will use the tree of size 5.</p>
+<pre class="r"><code>rprune.college &lt;- prune.tree(rtree.college, best = 5)
+
+plot(rprune.college)
+text(rprune.college, pretty = 0)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-42-1.png" width="672" /></p>
+<pre class="r"><code>rcollege.pred = predict(rprune.college, newdata = College[-train, ])
+
+RMSE(rcollege.pred)</code></pre>
+<pre><code>## [1] 87.38337</code></pre>
+<p>Noice that this performs worse than the whole tree. In fact, the performance decreases as the size of the tree decreases, so we will keep the full model.</p>
+<pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Tree&quot;, TREE.RMSE)) %&gt;% arrange(RMSE)
+knitr::kable(my_results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Lasso</td>
+<td align="right">50.975</td>
+</tr>
+<tr class="even">
+<td align="left">Ridge</td>
+<td align="right">59.102</td>
+</tr>
+<tr class="odd">
+<td align="left">PLS</td>
+<td align="right">69.416</td>
+</tr>
+<tr class="even">
+<td align="left">PCR</td>
+<td align="right">83.059</td>
+</tr>
+<tr class="odd">
+<td align="left">Tree</td>
+<td align="right">86.727</td>
+</tr>
+<tr class="even">
+<td align="left">OLS</td>
+<td align="right">191.326</td>
+</tr>
+</tbody>
+</table>
+<p>We can see that the regression tree performs worse than the optimized linear regression models. Perhaps we can infer that a linear decision boundary is a better fit for this data set. The tree will perform better when the predictor space can be divided up into rectangular regions.</p>
+<p><img src="treefit.png"></p>
+</div>
+<div id="bagging" class="section level2">
+<h2><span class="header-section-number">4.4</span> Bagging</h2>
+<p>Bagging is a technique to reduce the variance of a statistical learning procedure. If we fit a deep tree to the data, we may have overfitting, so the model will not generalize well. However, if we fit many trees and average the results we will have lower variance when generalizing. Bagging stands for <em>bootstrap aggregation</em> and works as follows: Take <span class="math inline">\(B\)</span> bootstrap samples and fit a full tree to each sample. Our prediction for an observation <span class="math inline">\(x\)</span> is <span class="math display">\[\hat{f}_{bag}(x)=\frac{1}{B}\sum_{b=1}^B\hat{f}^{*b}(x)\]</span></p>
+<pre class="r"><code>library(randomForest)
+set.seed(1)
+bag.college &lt;- randomForest(Apps ~ ., data = College, subset = train, mtry = 17, importance = TRUE)
+bag.college</code></pre>
+<pre><code>## 
+## Call:
+##  randomForest(formula = Apps ~ ., data = College, mtry = 17, importance = TRUE,      subset = train) 
+##                Type of random forest: regression
+##                      Number of trees: 500
+## No. of variables tried at each split: 17
+## 
+##           Mean of squared residuals: 577027.7
+##                     % Var explained: 94.59</code></pre>
+<pre class="r"><code>varImpPlot(bag.college)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
+<p>To discuss these error metrics, we need to discuss <span class="math inline">\(OOB\)</span>: out-of-bag observations. For each observation, it will be left out of about <span class="math inline">\(B/3\)</span> bootstrap sample, and is said to be an out-of-bag observation. TWe can estimate the error of a single observation by finding the residual each time it was out of bag, and averaging them. The root mean square of these residuals estimates the test error. The <code>%IncMSE</code> reports the mean decrease of accuracy in predictions on the out-of-bag samples when a given variable is excluded from the model, where the <span class="math inline">\(OOB\)</span> sample is the observations left out when we take a bootstrap sample. The <code>IncNodePurity</code> is a measure of the total decrease in node impurity that results from splits on that variable, averaged over all trees. In case of regression trees, node impurity is measured using RSS</p>
+<p>Note that bagging is a special case of random forests where all the predictors are used, so we can call the <code>randomForest</code> function and specify <code>mtry = 17</code>.</p>
+<pre class="r"><code>yhat.bag &lt;- predict(bag.college, newdata = College[-train, ])
+RMSE(yhat.bag)</code></pre>
+<pre><code>## [1] 80.26717</code></pre>
+<p>This is an improvement over the plain regression tree.</p>
+</div>
+<div id="random-forests" class="section level2">
+<h2><span class="header-section-number">4.5</span> Random Forests</h2>
+<p>Random forest provide an improvement over bagging by <em>decorrelating</em> the trees. With a random foresst, you are only allowedd to consider a subset of predictors during each split. For example, in our bagging model, for each split consider which of the 17 predictors will yield a greatest decrease in residual error and we split that predictor. With random forests we choose a smaller number, usually <span class="math inline">\(\sqrt{p}\)</span> for classification and <span class="math inline">\(p/3\)</span> for regressoin, so in this case <span class="math inline">\(6\)</span> predictors. During each split we choose another random sample of <span class="math inline">\(6\)</span> predictors from our original 17 and only consider the best split amongst those predictors. This decorrelates the trees especially when you have a couple of very strong predictors driving the splits. Then if you fit 500 trees, they’ll have similar specifications even if the bootstrapped samples are different. Random forests ensure you are considering the contributions of each predictor in making the best decision.</p>
+<pre class="r"><code>set.seed(1)
+rf.college &lt;- randomForest(Apps ~ ., data = College, subset = train, mtry = 6, importance = TRUE)
+yhat.rf = predict(rf.college, newdata = College[-train, ])
+RMSE(yhat.rf)</code></pre>
+<pre><code>## [1] 81.62966</code></pre>
+<p>The random forest did not improve over bagging.</p>
+<pre class="r"><code>importance(rf.college)</code></pre>
+<pre><code>##                %IncMSE IncNodePurity
+## Private      3.3420225      26115112
+## Accept      29.5321125     911421122
+## Enroll      16.2100522     439991826
+## Top10perc    5.2777420      25740880
+## Top25perc    7.3245285      33339335
+## F.Undergrad 12.8048040     314155716
+## P.Undergrad  4.4498262      68083238
+## Outstate     4.0638889      17406781
+## Room.Board   3.0482511      19996038
+## Books        2.2165411      11171856
+## Personal     0.9292713      12576815
+## PhD          5.1734957      51314621
+## Terminal     3.0567707      23836370
+## S.F.Ratio    2.7990116      14517150
+## perc.alumni -0.4731823       6842047
+## Expend       8.3046985      40450479
+## Grad.Rate    3.4572604      13614836</code></pre>
+<pre class="r"><code>varImpPlot(rf.college)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-47-1.png" width="672" /></p>
+<p>The three clear most important variables are the number of accepted applicants, number of new students enrolled, and number of fulltime undergraduates. Even though the performance on this test set was not much better than bagging, I believe this model would generalize much better. The bagging model was dominated by the <code>Accept</code> predictor and did not properly weight the contributions of <code>Enroll</code> and <code>F.Undergrad</code>, even though they were still identified as the most important. Instead the mysterious <code>Top25perc</code> found its way to the top, just like in the original tree.</p>
+</div>
+<div id="boosting" class="section level2">
+<h2><span class="header-section-number">4.6</span> Boosting</h2>
+<p>Boosting is a “slow learning” method creates an additive model after training trees on bootstrapped samples.. The algorithm for boosting begins by assuming that your prediction for yhat is 0, so your residual is yhat - 0 = yhat. It fits a tree on each bootstrapped sample, each time adding a small increment to yhat, and decreasing the residual. Each prediction is actually the sum of small predictions made on each bootstrapped set, where each new prediction is made in order to decrease the residual slightly more. The output is the boosted additive model. Here is the algorithm as shown in the ISLR book:</p>
+<p><img src="boosting.png"></p>
+<p>Lambda is the shrinkage parameter applied to each boostrap prediction. The parameter <span class="math inline">\(d\)</span>, called the ineraction depth, can be quite small, and results in fitting small trees. By fitting small trees to the residual, we slowly improve f.hat in areas where it does not perform well. Since each tree takes into account trees that have already been grown, small trees are sufficient, which makes this model much different from the bagging approach.</p>
+<pre class="r"><code>library(gbm)
+set.seed(1)
+boost.college &lt;- gbm(Apps ~ ., data = College[-train, ], distribution = &quot;gaussian&quot;, n.trees = 5000, interaction.depth = 4)
+summary(boost.college)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-48-1.png" width="672" /></p>
+<pre><code>##                     var     rel.inf
+## Accept           Accept 70.98638834
+## Enroll           Enroll 11.48659949
+## F.Undergrad F.Undergrad  4.88653297
+## Top25perc     Top25perc  3.54032591
+## Top10perc     Top10perc  2.88195991
+## Grad.Rate     Grad.Rate  1.37725695
+## P.Undergrad P.Undergrad  1.30974234
+## Outstate       Outstate  0.88677566
+## Expend           Expend  0.68957338
+## S.F.Ratio     S.F.Ratio  0.52743209
+## Room.Board   Room.Board  0.47154586
+## Terminal       Terminal  0.30653373
+## PhD                 PhD  0.18769817
+## Books             Books  0.18322066
+## Personal       Personal  0.17511831
+## perc.alumni perc.alumni  0.07775720
+## Private         Private  0.02553904</code></pre>
+<p>Note that the distribution assumed on the response is gaussian, since this is a regression problem (bernoulli for classification), and the shrinkage parameter is by default set to <span class="math inline">\(.001\)</span>. The relative influence plot confirms that accept and enroll are by far the most important variables.</p>
+<pre class="r"><code>yhat.boost &lt;- predict(boost.college, newdata = College[-train, ], n.trees = 5000)
+BOOST.RMSE &lt;- RMSE(yhat.boost)
+BOOST.RMSE</code></pre>
+<pre><code>## [1] 57.69336</code></pre>
+<p>Boosting well outperforms the random forest approach and is on par with ridge regression.</p>
+<pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Boost&quot;, BOOST.RMSE)) %&gt;% arrange(RMSE)
+knitr::kable(my_results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Lasso</td>
+<td align="right">50.975</td>
+</tr>
+<tr class="even">
+<td align="left">Boost</td>
+<td align="right">57.693</td>
+</tr>
+<tr class="odd">
+<td align="left">Ridge</td>
+<td align="right">59.102</td>
+</tr>
+<tr class="even">
+<td align="left">PLS</td>
+<td align="right">69.416</td>
+</tr>
+<tr class="odd">
+<td align="left">PCR</td>
+<td align="right">83.059</td>
+</tr>
+<tr class="even">
+<td align="left">Tree</td>
+<td align="right">86.727</td>
+</tr>
+<tr class="odd">
+<td align="left">OLS</td>
+<td align="right">191.326</td>
+</tr>
+</tbody>
+</table>
 </div>
 </div>
 
