@@ -12,7 +12,7 @@
 <meta name="author" content="Harrison Tietze" />
 
 
-<title>ML</title>
+<title>Statistical Learning</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -216,8 +216,9 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">ML</h1>
+<h1 class="title toc-ignore">Statistical Learning</h1>
 <h4 class="author"><em>Harrison Tietze</em></h4>
+<h4 class="date"><em>Fall 2017</em></h4>
 
 </div>
 
@@ -236,12 +237,16 @@ $(document).ready(function () {
 <li><a href="#estimates-of-test-error"><span class="toc-section-number">3.2</span> Estimates of Test error</a></li>
 <li><a href="#forward-selection"><span class="toc-section-number">3.3</span> Forward Selection</a></li>
 </ul></li>
+<li><a href="#decision-trees"><span class="toc-section-number">4</span> Decision Trees</a><ul>
+<li><a href="#fitting-classification-trees"><span class="toc-section-number">4.1</span> Fitting Classification Trees</a></li>
+<li><a href="#cost-complexity-pruning"><span class="toc-section-number">4.2</span> Cost-complexity pruning</a></li>
+</ul></li>
 </ul>
 </div>
 
+<p>reference: <a href="https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&amp;qid=1510705551&amp;sr=8-1&amp;keywords=introduction+to+statistical+learning">Introduction to Statistical learning</a> (2015) <em>Tibshirani, Hastie</em></p>
 <div id="regression-models" class="section level1">
 <h1><span class="header-section-number">1</span> Regression Models</h1>
-<p>reference: <em>Introduction to Statistical learning</em> (2015) <em>Tibshirani, Hastie</em></p>
 <div id="glmnet" class="section level2">
 <h2><span class="header-section-number">1.1</span> glmnet</h2>
 <p>In this analysis we will work with the “College” dataset, which contains 777 observations with 18 variables. The goals is to predict how many applications a college will recieve “Apps” based off other predictors.</p>
@@ -266,6 +271,7 @@ $(document).ready(function () {
 ##  $ perc.alumni: num  12 16 30 37 2 11 26 37 23 15 ...
 ##  $ Expend     : num  7041 10527 8735 19016 10922 ...
 ##  $ Grad.Rate  : num  60 56 54 59 15 55 63 73 80 52 ...</code></pre>
+<p><img src="collegedata.png"></p>
 <p>The variables are numeric, except for the factor: Private. Let’s build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.</p>
 <pre class="r"><code>X = model.matrix(Apps ~ . - 1, data = College)[, -1]
 Y = model.matrix(~ Apps + 0, data = College)
@@ -278,8 +284,8 @@ Y.train &lt;- Y[train]
 
 X.test &lt;- X[-train, ]
 Y.test &lt;- Y[-train]</code></pre>
-<p>Let’s fit a least-squares regression, which can be done using glmnet and no further arguments. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
-<pre class="r"><code>OLS.mod &lt;- glmnet(X.train, Y.train)
+<p>Let’s fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
+<pre class="r"><code>OLS.mod &lt;- lm(Apps ~ . , data = data_df)
 
 OLS.pred &lt;- predict(OLS.mod, newx = X.test)
 
@@ -305,11 +311,11 @@ knitr::kable(results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">7.852</td>
+<td align="right">191.326</td>
 </tr>
 </tbody>
 </table>
-<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 0.2615748%, we can infer our error is overall relatively small.</p>
+<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 6.3740515%, we can infer our error is quite high.</p>
 </div>
 <div id="ridge-regression" class="section level2">
 <h2><span class="header-section-number">1.2</span> Ridge Regression</h2>
@@ -317,7 +323,7 @@ knitr::kable(results, digits = 3)</code></pre>
 <p>Unlike the least squares estimate which produces only one set of coefficients, ridge regression computes a <em>path</em> of coefficients <span class="math inline">\(\beta^R_{\lambda}\)</span> which is a <span class="math inline">\(p-\)</span>dimensional sequence indexed by <span class="math inline">\(\lambda\)</span>. Cross validation must be used the to select the <span class="math inline">\(\lambda\)</span> such that <span class="math inline">\(\beta^R_{\lambda}\)</span> minimizes the out-of-sample error.</p>
 <p>Let’s fit a ridge regression. Also, we can manually specify a grid of values for <span class="math inline">\(\lambda\)</span>:</p>
 <pre class="r"><code>grid &lt;- 10^ seq (10,-2, length =100)
-ridge.mod &lt;- glmnet(X.test, Y.test, alpha = 0, lambda = grid)  
+ridge.mod &lt;- glmnet(X.train, Y.train, alpha = 0, lambda = grid)  
 
 # alpha = 0 specifies that we are using a Ridge Regression.
 # glmnet automatically does centering first; Standardize = TRUE by default</code></pre>
@@ -669,7 +675,7 @@ knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = &quot;Result pr
 </tr>
 </tbody>
 </table>
-<p>The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods.</p>
+<p>The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods.</p>
 </div>
 <div id="subset-selection" class="section level1">
 <h1><span class="header-section-number">3</span> Subset selection</h1>
@@ -802,6 +808,92 @@ show_metrics(sum.FWD)</code></pre>
 ##         PhD    Terminal   S.F.Ratio perc.alumni      Expend   Grad.Rate 
 ##        TRUE        TRUE        TRUE        TRUE        TRUE        TRUE</code></pre>
 <p>It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimensional data.</p>
+</div>
+</div>
+<div id="decision-trees" class="section level1">
+<h1><span class="header-section-number">4</span> Decision Trees</h1>
+<div id="fitting-classification-trees" class="section level2">
+<h2><span class="header-section-number">4.1</span> Fitting Classification Trees</h2>
+<p>In this setion I we will fit a classification tree to the College data set to predict whether or not a college is private. In fact, we use the original dataset, not the <code>data_df</code> that encodes the private factor as a dummy variable.</p>
+<pre class="r"><code>library(tree)
+tree.College &lt;- tree(Private ~ ., data = College)
+summary(tree.College)</code></pre>
+<pre><code>## 
+## Classification tree:
+## tree(formula = Private ~ ., data = College)
+## Variables actually used in tree construction:
+## [1] &quot;F.Undergrad&quot; &quot;Outstate&quot;    &quot;P.Undergrad&quot; &quot;Top10perc&quot;   &quot;perc.alumni&quot;
+## [6] &quot;Enroll&quot;     
+## Number of terminal nodes:  10 
+## Residual mean deviance:  0.2563 = 196.6 / 767 
+## Misclassification error rate: 0.04891 = 38 / 777</code></pre>
+<p>The misclassification error rate, which is the training error rate, is about <span class="math inline">\(5%\)</span>, which is quite good. The deviance reported is given by <span class="math display">\[-2\sum_m\sum_kn_{nm}\log\hat{p}_{mk}\]</span> Where <span class="math inline">\(n_{mk}\)</span> is the number of observations in the <span class="math inline">\(m\)</span>th terminal node that belong to the <span class="math inline">\(k\)</span>th class. Where <span class="math inline">\(m\)</span> is the number of terminal nodes of the tree, 10 in this case, and <span class="math inline">\(k\)</span> can take <span class="math inline">\(2\)</span> values: one for each class label (public or private). <span class="math inline">\(\hat{p}_{mk}\)</span> is the class propotion for a specific node, so in this case it is <span class="math inline">\(\frac{n_{mk}}{n_{m1} + n_{m2}}\)</span> for <span class="math inline">\(k = 0\)</span> or <span class="math inline">\(k=1\)</span>. We can see that this formula for deviance looks like the <a href="https://en.wikipedia.org/wiki/Cross_entropy">cross-entropy</a>. It follows that we can interpret it as a cumulative measure of node purity. To elaborate let’s discuss how the decision trees work. They divide up the predictor space into <span class="math inline">\(m\)</span> regions which can be visualized as a cut-up rectangular box where each box is the region, or an upside-down tree where the terminal leaves are the regions. <img src="treeimage.png"></p>
+<p>For a classification tree, the class label that is a assigned to a data point in a certain region of the predictor space is the <em>majority vote</em> of class labels in that region. Since we only have 2 class labels, it would be whichever label is dominant. Therefore, misclassification error occurs when there are training points in a region where the majority vote has a different label. That’s why we want to measure the region’s or node’s purity: the percentage of training points that belong to a single label. By maximizing the purity, we minimize the training error. An easily interpretable measure of node purity is the Gini index: <span class="math display">\[G = \sum_{k=1}^K\hat{p}_{mk}(1-\hat{p}_{mk})\]</span> which gives the purity for the <span class="math inline">\(m\)</span>th node. If all the training labels belong to almost a single class <span class="math inline">\(k\)</span>, we can see that <span class="math inline">\(G\)</span> is almost 0 and the node is very pure. The <em>cross-entropy</em> and similarly the deviance have a similar interpretaion to the Gini index, and thus we want to minimize them to get the best classfier.</p>
+<p>The <em>residual mean deviance</em> statistic reported is simply the deviance divided by <span class="math inline">\(n - |T|\)</span> where <span class="math inline">\(n = 777\)</span> is the number of observations, and <span class="math inline">\(|T| = 10\)</span> is the number of terminal nodes. A small RMD indicates that the tree provides a good fit to the data.</p>
+<p>We can print out a visual representation of the tree.</p>
+<pre class="r"><code>plot(tree.College)
+text(tree.College)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
+<p>We can see the most important determining variable is the number of full time undergraduates. From the leftmost branch we can see that a second split of the <code>F.Undergrad</code> predictor was significant: smaller schools tend to be private. The out-of-state tuition is also an important fact: schools with smaller enrollments but higher tuition tend to be private, and if the tuition is just really high, it is probably private. Private schools also have a larger percentage of alumni who donate back.</p>
+<p>To get an estimate of the test error we need to split the data into a training and validation set.</p>
+<pre class="r"><code>College.test &lt;- College[-train, ]
+Private.test &lt;- College$Private[-train]
+tree.college &lt;- tree(Private ~ ., data = College, subset = train)
+tree.pred &lt;- predict(tree.college, College.test, type = &quot;class&quot;)
+tree.table &lt;- table(tree.pred, Private.test)</code></pre>
+<p>The table function gives a confusion matrix to explain the performance of the classifier:</p>
+<pre class="r"><code>tree.table</code></pre>
+<pre><code>##          Private.test
+## tree.pred  No Yes
+##       No  132  43
+##       Yes  32 376</code></pre>
+<p>By dividing the counts in the off-diagonal by the total observations, we get the misclassification error:</p>
+<pre class="r"><code>error_rate = function(myTable)  {(myTable[1,2] + myTable[2, 1]) / (sum(myTable))}
+
+error_rate(tree.table)</code></pre>
+<pre><code>## [1] 0.1286449</code></pre>
+</div>
+<div id="cost-complexity-pruning" class="section level2">
+<h2><span class="header-section-number">4.2</span> Cost-complexity pruning</h2>
+<p>Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less copmlex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: <span class="math display">\[\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|\]</span> Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree’s performance on the test set.</p>
+<pre class="r"><code>cv.college = cv.tree(tree.college, FUN = prune.misclass)
+cv.college</code></pre>
+<pre><code>## $size
+## [1] 8 5 3 1
+## 
+## $dev
+## [1] 21 17 18 48
+## 
+## $k
+## [1] -Inf  0.0  2.5 17.5
+## 
+## $method
+## [1] &quot;misclass&quot;
+## 
+## attr(,&quot;class&quot;)
+## [1] &quot;prune&quot;         &quot;tree.sequence&quot;</code></pre>
+<p>Explanation of the output: <code>size</code> refers to the number of terminal nodes in the tree, <code>dev</code> is the CV error, <code>k</code> is the tuning parameter <span class="math inline">\(\alpha\)</span>. We set <code>FUN = prune.misclass</code>to indicate that classification error is what guides the tuning process, as opposed to the default metric: deviance.</p>
+<pre class="r"><code>cv_df &lt;- as.data.frame(cv.college[c(&#39;size&#39;, &#39;dev&#39;, &#39;k&#39;)]) %&gt;% gather(key = &quot;metric&quot;, value = &quot;value&quot;) %&gt;% mutate(index = rep(1:length(cv.college$size), 3))
+ggplot(data = cv_df, aes(x = index, y = value, col = metric)) +
+  geom_line()</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
+<p>It looks like the CV error is minimized for <span class="math inline">\(k = 13\)</span> and <span class="math inline">\(size = 4\)</span></p>
+<p>Now we can apply the <code>prune.misclass</code> function to obtain this tree:</p>
+<pre class="r"><code>prune.college &lt;- prune.misclass(tree.college, best = 4)
+plot(prune.college)
+text(prune.college, pretty = 0)</code></pre>
+<p><img src="ML_files/figure-html/unnamed-chunk-35-1.png" width="672" /></p>
+<p>We can see it incorporates the 2 most important variables previously identified, out-of-state tuition and number of full-time undergraduates.</p>
+<pre class="r"><code>prune.pred = predict(prune.college, College.test, type = &quot;class&quot;)
+prune.table &lt;- table(prune.pred, Private.test)</code></pre>
+<pre class="r"><code>prune.table</code></pre>
+<pre><code>##           Private.test
+## prune.pred  No Yes
+##        No  132  43
+##        Yes  32 376</code></pre>
+<pre class="r"><code>error_rate(prune.table)</code></pre>
+<pre><code>## [1] 0.1286449</code></pre>
+<p>Interestingly we have the same exact test error! If you compare both tables, you can see that the numbers are different but the sums are the same, yielding the same fraction. Now we have a much more interpretable tree with the same exact performance.</p>
 </div>
 </div>
 

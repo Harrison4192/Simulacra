@@ -1,6 +1,7 @@
 ---
-title: "ML"
+title: "Statistical Learning"
 author: "Harrison Tietze"
+date: "Fall 2017"
 output:
   html_document:
     toc: yes
@@ -9,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = TRUE)
+knitr::opts_chunk$set(cache = T)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 library(ISLR)
@@ -19,9 +20,10 @@ library(magrittr)
 library(microbenchmark)
 ```
 
+reference: [Introduction to Statistical learning](https://www.amazon.com/Introduction-Statistical-Learning-Applications-Statistics/dp/1461471370/ref=sr_1_1?ie=UTF8&qid=1510705551&sr=8-1&keywords=introduction+to+statistical+learning) (2015) *Tibshirani, Hastie*
+
 #Regression Models
 
-reference: *Introduction to Statistical learning* (2015) *Tibshirani, Hastie*
 
 ##glmnet
 
@@ -33,6 +35,8 @@ First examine the structure of the dataset:
 ```{r}
 str(College)
 ```
+
+<img src="collegedata.png">
 
 The variables are numeric, except for the factor: Private. Let's build a model matrix that automatically creates dummy variables, which is important because glmnet only accepts numeric variables.
 
@@ -57,10 +61,10 @@ Y.test <- Y[-train]
 ```
 
 
-Let's fit a least-squares regression, which can be done using glmnet and no further arguments. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
+Let's fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
 
 ```{r}
-OLS.mod <- glmnet(X.train, Y.train)
+OLS.mod <- lm(Apps ~ . , data = data_df)
 
 OLS.pred <- predict(OLS.mod, newx = X.test)
 
@@ -78,8 +82,8 @@ results <- tibble(model = "OLS",
 knitr::kable(results, digits = 3)
 ```
 
+The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%, we can infer our error is quite high. 
 
-The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%, we can infer our error is overall relatively small. 
 
 
 ##Ridge Regression
@@ -92,7 +96,7 @@ Let's fit a ridge regression. Also, we can manually specify a grid of values for
 
 ```{r}
 grid <- 10^ seq (10,-2, length =100)
-ridge.mod <- glmnet(X.test, Y.test, alpha = 0, lambda = grid)  
+ridge.mod <- glmnet(X.train, Y.train, alpha = 0, lambda = grid)  
 
 # alpha = 0 specifies that we are using a Ridge Regression.
 # glmnet automatically does centering first; Standardize = TRUE by default
@@ -276,7 +280,7 @@ map(caret_names, my_caret) %>%
 knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = "Result produced by Caret. Models arranged by RMSE.")
 ```
 
-The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call, which is noticably better than all other methods, and this least-squares call, which is comparable to other regression methods. 
+The results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods. 
 
 # Subset selection
 
@@ -383,3 +387,102 @@ sum.FWD$which[10, ] == bmod.summary$which[10, ]
 ```
 
 It looks like both methods give the same results. Therefore we can opt for the faster, forward selection method. However, this was a small data set. Results may vary for large high-dimensional data. 
+
+#Decision Trees
+
+## Fitting Classification Trees
+
+In this setion I we will fit a classification tree to the College data set to predict whether or not a college is private. In fact, we use the original dataset, not the `data_df` that encodes the private factor as a dummy variable. 
+
+```{r}
+library(tree)
+tree.College <- tree(Private ~ ., data = College)
+summary(tree.College)
+```
+
+
+The misclassification error rate, which is the training error rate, is about $5%$, which is quite good. The deviance reported is given by $$-2\sum_m\sum_kn_{nm}\log\hat{p}_{mk}$$ Where $n_{mk}$ is the number of observations in the $m$th terminal node that belong to the $k$th class. 
+Where $m$ is the number of terminal nodes of the tree, 10 in this case, and $k$ can take $2$ values: one for each class label (public or private). $\hat{p}_{mk}$ is the class propotion for a specific node, so in this case it is $\frac{n_{mk}}{n_{m1} + n_{m2}}$ for $k = 0$ or $k=1$. We can see that this formula for deviance looks like the [cross-entropy](https://en.wikipedia.org/wiki/Cross_entropy). It follows that we can interpret it as a cumulative measure of node purity. To elaborate let's discuss how the decision trees work. They divide up the predictor space into $m$ regions which can be visualized as a cut-up rectangular box where each box is the region, or an upside-down tree where the terminal leaves are the regions.
+<img src="treeimage.png">
+
+For a classification tree, the class label that is a assigned to a data point in a certain region of the predictor space is the *majority vote* of class labels in that region. Since we only have 2 class labels, it would be whichever label is dominant. Therefore, misclassification error occurs when there are training points in a region where the majority vote has a different label. That's why we want to measure the region's or node's purity: the percentage of training points that belong to a single label. By maximizing the purity, we minimize the training error. An easily interpretable measure of node purity is the Gini index: $$G = \sum_{k=1}^K\hat{p}_{mk}(1-\hat{p}_{mk})$$ which gives the purity for the $m$th node. If all the training labels belong to almost a single class $k$, we can see that $G$ is almost 0 and the node is very pure. The *cross-entropy* and similarly the deviance have a similar interpretaion to the Gini index, and thus we want to minimize them to get the best classfier. 
+
+The *residual mean deviance* statistic reported is simply the deviance divided by $n - |T|$ where $n = 777$ is the number of observations, and $|T| = 10$ is the number of terminal nodes. A small RMD indicates that the tree provides a good fit to the data. 
+
+We can print out a visual representation of the tree. 
+```{r}
+plot(tree.College)
+text(tree.College)
+```
+
+We can see the most important determining variable is the number of full time undergraduates. From the leftmost branch we can see that a second split of the `F.Undergrad` predictor was significant: smaller schools tend to be private. The out-of-state tuition is also an important fact: schools with smaller enrollments but higher tuition tend to be private, and if the tuition is just really high, it is probably private. Private schools also have a larger percentage of alumni who donate back.
+
+To get an estimate of the test error we need to split the data into a training and validation set.
+
+
+```{r}
+College.test <- College[-train, ]
+Private.test <- College$Private[-train]
+tree.college <- tree(Private ~ ., data = College, subset = train)
+tree.pred <- predict(tree.college, College.test, type = "class")
+tree.table <- table(tree.pred, Private.test)
+```
+
+The table function gives a confusion matrix to explain the performance of the classifier:
+
+```{r}
+tree.table
+```
+
+By dividing the counts in the off-diagonal by the total observations, we get the misclassification error:
+
+```{r}
+
+error_rate = function(myTable)  {(myTable[1,2] + myTable[2, 1]) / (sum(myTable))}
+
+error_rate(tree.table)
+
+
+```
+
+## Cost-complexity pruning
+
+Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less copmlex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: $$\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|$$ Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree's performance on the test set. 
+
+```{r}
+cv.college = cv.tree(tree.college, FUN = prune.misclass)
+cv.college
+```
+
+Explanation of the output: `size` refers to the number of terminal nodes in the tree, `dev` is the CV error, `k` is the tuning parameter $\alpha$.
+We set `FUN = prune.misclass`to indicate that classification error is what guides the tuning process, as opposed to the default metric: deviance. 
+
+```{r}
+cv_df <- as.data.frame(cv.college[c('size', 'dev', 'k')]) %>% gather(key = "metric", value = "value") %>% mutate(index = rep(1:length(cv.college$size), 3))
+ggplot(data = cv_df, aes(x = index, y = value, col = metric)) +
+  geom_line()
+```
+
+It looks like the CV error is minimized for $k = 13$ and $size = 4$ 
+
+Now we can apply the `prune.misclass` function to obtain this tree:
+
+```{r}
+prune.college <- prune.misclass(tree.college, best = 4)
+plot(prune.college)
+text(prune.college, pretty = 0)
+```
+
+We can see it incorporates the 2 most important variables previously identified, out-of-state tuition and number of full-time undergraduates. 
+
+```{r}
+prune.pred = predict(prune.college, College.test, type = "class")
+prune.table <- table(prune.pred, Private.test)
+```
+
+```{r}
+prune.table
+error_rate(prune.table)
+```
+
+Interestingly we have the same exact test error! If you compare both tables, you can see that the numbers are different but the sums are the same, yielding the same fraction. Now we have a much more interpretable tree with the same exact performance. 
