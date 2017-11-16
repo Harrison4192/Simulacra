@@ -450,8 +450,13 @@ error_rate(tree.table)
 Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less copmlex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: $$\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|$$ Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree's performance on the test set. 
 
 ```{r}
+set.seed(1)
 cv.college = cv.tree(tree.college, FUN = prune.misclass)
 cv.college
+
+best_size <- function(x){x$dev %>% which.min() %>% `[`(x$size, .)}
+best_size_1 <- best_size(cv.college)
+
 ```
 
 Explanation of the output: `size` refers to the number of terminal nodes in the tree, `dev` is the CV error, `k` is the tuning parameter $\alpha$.
@@ -467,12 +472,13 @@ ggplot(data = ., aes(x = index, y = value, col = metric)) +
 plot_cv(cv.college)
 ```
 
-It looks like the CV error is minimized for $k = 13$ and $size = 4$ 
+It looks like the CV error is minimized for a tree of size `r best_size_1`. 
 
 Now we can apply the `prune.misclass` function to obtain this tree:
 
 ```{r}
-prune.college <- prune.misclass(tree.college, best = 4)
+set.seed(1)
+prune.college <- prune.misclass(tree.college, best = best_size_1)
 plot(prune.college)
 text(prune.college, pretty = 0)
 ```
@@ -507,7 +513,7 @@ plot(rtree.college)
 text(rtree.college, pretty = 0)
 ```
 
-Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The *residual mean deviance* is just the mean squared error for the tree. `Accept` refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with `Apps` which is the number of applications received. I did not expect that `Top25perc`, which is the percentage of students in the top 25% of their high school class, would be the other important variable; however, it is only used in one split. 
+Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The *residual mean deviance* is just the mean squared error for the tree. `Accept` refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with `Apps` which is the number of applications received. I did not expect that graduateion rate would be the other important variable; however, it is only used in one split. 
 
 ```{r}
 rtree.yhat <- predict(rtree.college, College[-train, ])
@@ -518,14 +524,17 @@ TREE.RMSE
 
 
 ```{r}
+set.seed(1)
 rcv.college = cv.tree(rtree.college)
 plot_cv(rcv.college)
 rcv.college
+best_size_2 <- ifelse(best_size(rcv.college) != 1, best_size(rcv.college), 5)
 ```
-It looks like the best trees are of size 1 and size 5. The function threw an error when I tried to make predictions using a single-node tree, so we will use the tree of size 5.
+It looks like the best tree is of size `r best_size_2`. Note that the `predict` function throws an error for a single-node tree.
 
 ```{r}
-rprune.college <- prune.tree(rtree.college, best = 5)
+set.seed(1)
+rprune.college <- prune.tree(rtree.college, best = best_size_2)
 
 plot(rprune.college)
 text(rprune.college, pretty = 0)
@@ -535,7 +544,7 @@ rcollege.pred = predict(rprune.college, newdata = College[-train, ])
 RMSE(rcollege.pred)
 ```
 
-Noice that this performs worse than the whole tree. In fact, the performance decreases as the size of the tree decreases, so we will keep the full model. 
+Noice that this performs exactly the same as the unpruned tree even though it uses `Terminal`: percent of faculty with terminal degrees, as the secondary predictor.
 
 ```{r}
 my_results <- rbind(my_results, list("Tree", TREE.RMSE)) %>% arrange(RMSE)
@@ -577,7 +586,8 @@ Random forest provide an improvement over bagging by *decorrelating* the trees. 
 set.seed(1)
 rf.college <- randomForest(Apps ~ ., data = College, subset = train, mtry = 6, importance = TRUE)
 yhat.rf = predict(rf.college, newdata = College[-train, ])
-RMSE(yhat.rf)
+RF.RMSE <- RMSE(yhat.rf)
+RF.RMSE
 
 ```
 
@@ -616,7 +626,7 @@ BOOST.RMSE
 Boosting well outperforms the random forest approach and is on par with ridge regression. 
 
 ```{r}
-my_results <- rbind(my_results, list("Boost", BOOST.RMSE)) %>% arrange(RMSE)
+my_results <- rbind(my_results, list("Boost", BOOST.RMSE), list("RF", RF.RMSE)) %>% arrange(RMSE)
 knitr::kable(my_results, digits = 3)
 ```
 

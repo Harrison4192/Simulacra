@@ -860,13 +860,14 @@ error_rate(tree.table)</code></pre>
 <div id="cost-complexity-pruning" class="section level2">
 <h2><span class="header-section-number">4.2</span> Cost-complexity pruning</h2>
 <p>Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less copmlex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: <span class="math display">\[\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|\]</span> Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree’s performance on the test set.</p>
-<pre class="r"><code>cv.college = cv.tree(tree.college, FUN = prune.misclass)
+<pre class="r"><code>set.seed(1)
+cv.college = cv.tree(tree.college, FUN = prune.misclass)
 cv.college</code></pre>
 <pre><code>## $size
 ## [1] 8 5 3 1
 ## 
 ## $dev
-## [1] 21 17 18 48
+## [1] 20 17 18 48
 ## 
 ## $k
 ## [1] -Inf  0.0  2.5 17.5
@@ -876,6 +877,8 @@ cv.college</code></pre>
 ## 
 ## attr(,&quot;class&quot;)
 ## [1] &quot;prune&quot;         &quot;tree.sequence&quot;</code></pre>
+<pre class="r"><code>best_size &lt;- function(x){x$dev %&gt;% which.min() %&gt;% `[`(x$size, .)}
+best_size_1 &lt;- best_size(cv.college)</code></pre>
 <p>Explanation of the output: <code>size</code> refers to the number of terminal nodes in the tree, <code>dev</code> is the CV error, <code>k</code> is the tuning parameter <span class="math inline">\(\alpha\)</span>. We set <code>FUN = prune.misclass</code>to indicate that classification error is what guides the tuning process, as opposed to the default metric: deviance.</p>
 <pre class="r"><code>plot_cv &lt;- function(cv_object){  as.data.frame(cv_object[c(&#39;size&#39;, &#39;dev&#39;, &#39;k&#39;)]) %&gt;% gather(key = &quot;metric&quot;, value = &quot;value&quot;) %&gt;% mutate(index = rep(1:length(cv_object$size), 3)) %&gt;%
 ggplot(data = ., aes(x = index, y = value, col = metric)) +
@@ -883,9 +886,10 @@ ggplot(data = ., aes(x = index, y = value, col = metric)) +
 
 plot_cv(cv.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
-<p>It looks like the CV error is minimized for <span class="math inline">\(k = 13\)</span> and <span class="math inline">\(size = 4\)</span></p>
+<p>It looks like the CV error is minimized for a tree of size 5.</p>
 <p>Now we can apply the <code>prune.misclass</code> function to obtain this tree:</p>
-<pre class="r"><code>prune.college &lt;- prune.misclass(tree.college, best = 4)
+<pre class="r"><code>set.seed(1)
+prune.college &lt;- prune.misclass(tree.college, best = best_size_1)
 plot(prune.college)
 text(prune.college, pretty = 0)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-35-1.png" width="672" /></p>
@@ -920,12 +924,13 @@ summary(rtree.college)</code></pre>
 <pre class="r"><code>plot(rtree.college)
 text(rtree.college, pretty = 0)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-39-1.png" width="672" /></p>
-<p>Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The <em>residual mean deviance</em> is just the mean squared error for the tree. <code>Accept</code> refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with <code>Apps</code> which is the number of applications received. I did not expect that <code>Top25perc</code>, which is the percentage of students in the top 25% of their high school class, would be the other important variable; however, it is only used in one split.</p>
+<p>Notice that only two predictors were used in the construction of this tree, but they are split 6 times. The <em>residual mean deviance</em> is just the mean squared error for the tree. <code>Accept</code> refers to the number of applications accepted. It makes perfect sense that this quantity would be correlated with <code>Apps</code> which is the number of applications received. I did not expect that graduateion rate would be the other important variable; however, it is only used in one split.</p>
 <pre class="r"><code>rtree.yhat &lt;- predict(rtree.college, College[-train, ])
 TREE.RMSE &lt;- RMSE(rtree.yhat)
 TREE.RMSE</code></pre>
 <pre><code>## [1] 86.72674</code></pre>
-<pre class="r"><code>rcv.college = cv.tree(rtree.college)
+<pre class="r"><code>set.seed(1)
+rcv.college = cv.tree(rtree.college)
 plot_cv(rcv.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-41-1.png" width="672" /></p>
 <pre class="r"><code>rcv.college</code></pre>
@@ -943,8 +948,10 @@ plot_cv(rcv.college)</code></pre>
 ## 
 ## attr(,&quot;class&quot;)
 ## [1] &quot;prune&quot;         &quot;tree.sequence&quot;</code></pre>
-<p>It looks like the best trees are of size 1 and size 5. The function threw an error when I tried to make predictions using a single-node tree, so we will use the tree of size 5.</p>
-<pre class="r"><code>rprune.college &lt;- prune.tree(rtree.college, best = 5)
+<pre class="r"><code>best_size_2 &lt;- ifelse(best_size(rcv.college) != 1, best_size(rcv.college), 5)</code></pre>
+<p>It looks like the best tree is of size 6. Note that the <code>predict</code> function throws an error for a single-node tree.</p>
+<pre class="r"><code>set.seed(1)
+rprune.college &lt;- prune.tree(rtree.college, best = best_size_2)
 
 plot(rprune.college)
 text(rprune.college, pretty = 0)</code></pre>
@@ -952,8 +959,8 @@ text(rprune.college, pretty = 0)</code></pre>
 <pre class="r"><code>rcollege.pred = predict(rprune.college, newdata = College[-train, ])
 
 RMSE(rcollege.pred)</code></pre>
-<pre><code>## [1] 87.38337</code></pre>
-<p>Noice that this performs worse than the whole tree. In fact, the performance decreases as the size of the tree decreases, so we will keep the full model.</p>
+<pre><code>## [1] 86.72674</code></pre>
+<p>Noice that this performs exactly the same as the unpruned tree even though it uses <code>Terminal</code>: percent of faculty with terminal degrees, as the secondary predictor.</p>
 <pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Tree&quot;, TREE.RMSE)) %&gt;% arrange(RMSE)
 knitr::kable(my_results, digits = 3)</code></pre>
 <table>
@@ -1024,7 +1031,8 @@ RMSE(yhat.bag)</code></pre>
 <pre class="r"><code>set.seed(1)
 rf.college &lt;- randomForest(Apps ~ ., data = College, subset = train, mtry = 6, importance = TRUE)
 yhat.rf = predict(rf.college, newdata = College[-train, ])
-RMSE(yhat.rf)</code></pre>
+RF.RMSE &lt;- RMSE(yhat.rf)
+RF.RMSE</code></pre>
 <pre><code>## [1] 81.62966</code></pre>
 <p>The random forest did not improve over bagging.</p>
 <pre class="r"><code>importance(rf.college)</code></pre>
@@ -1084,7 +1092,7 @@ BOOST.RMSE &lt;- RMSE(yhat.boost)
 BOOST.RMSE</code></pre>
 <pre><code>## [1] 57.69336</code></pre>
 <p>Boosting well outperforms the random forest approach and is on par with ridge regression.</p>
-<pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Boost&quot;, BOOST.RMSE)) %&gt;% arrange(RMSE)
+<pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Boost&quot;, BOOST.RMSE), list(&quot;RF&quot;, RF.RMSE)) %&gt;% arrange(RMSE)
 knitr::kable(my_results, digits = 3)</code></pre>
 <table>
 <thead>
@@ -1111,14 +1119,18 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <td align="right">69.416</td>
 </tr>
 <tr class="odd">
+<td align="left">RF</td>
+<td align="right">81.630</td>
+</tr>
+<tr class="even">
 <td align="left">PCR</td>
 <td align="right">83.059</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">Tree</td>
 <td align="right">86.727</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">OLS</td>
 <td align="right">191.326</td>
 </tr>
