@@ -282,16 +282,18 @@ Y = model.matrix(~ Apps + 0, data = College)
 
 data_df &lt;- as.data.frame(cbind(X, Y))</code></pre>
 <p>Since we will be testing the performance of multiple models, we need to split the data into a test and training set.</p>
-<pre class="r"><code>train &lt;- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
+<pre class="r"><code>set.seed(1)
+train &lt;- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
 X.train &lt;- X[train, ]
 Y.train &lt;- Y[train]
 
 X.test &lt;- X[-train, ]
 Y.test &lt;- Y[-train]</code></pre>
 <p>Let’s fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals.</p>
-<pre class="r"><code>LM.mod &lt;- lm(Apps ~ . , data = data_df)
+<pre class="r"><code>set.seed(1)
+LM.mod &lt;- lm(Apps ~ . , data = data_df, subset = train)
 
-LM.pred &lt;- predict(LM.mod, newx = X.test)
+LM.pred &lt;- predict(LM.mod, newdata = data_df[-train, ])
 
 RMSE &lt;- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
 
@@ -315,18 +317,19 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="right">45.324</td>
 </tr>
 </tbody>
 </table>
-<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 6.3740515%, we can infer our error is quite high.</p>
+<p>The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive by the RMSE. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives 3002 and our percent error is 1.5099806%.</p>
 </div>
 <div id="ridge-regression" class="section level2">
 <h2><span class="header-section-number">1.2</span> Ridge Regression</h2>
 <p>Ridge regression fits a linear model by minimizing the quanitity <span class="math inline">\(RSS + \lambda \sum_{j=1}^p\beta_j^2\)</span>, where <span class="math inline">\(\lambda \sum_{j=1}^p\beta_j^2\)</span> also written <span class="math inline">\(\lambda||\beta||^2\)</span> is called a <em>shrinkage penalty</em> and <span class="math inline">\(\lambda \geq 0\)</span> is called a <em>tuning parameter</em>. At the extremes, <span class="math inline">\(\lambda = 0\)</span> returns the least-squares estimate, and <span class="math inline">\(\lambda \rightarrow \infty\)</span> returns the <em>null model</em>, where all the predictors are forced to <span class="math inline">\(0\)</span>. Note, that shrinkage is not applied to the intercept. Instead we first center the inputs and then estmiate <span class="math inline">\(\beta_0\)</span> by <span class="math inline">\(\overline{y}\)</span>. Centering is also necessary because unlike in OLS, the scale of the predictors can influence the estimate. Centering predictors is done by dividing by their standard deviation: <span class="math inline">\(\tilde{x_{ij}} = \frac{x_{ij}}{\sqrt{\sum_{i=1}^N(x_{ij}-\overline{x_j})^2}}\)</span>. The <span class="math inline">\(\tilde{x_{ij}}\)</span> are called <em>standardized predictors</em> and are used to compute <em>standardized coefficients</em>.</p>
 <p>Unlike the least squares estimate which produces only one set of coefficients, ridge regression computes a <em>path</em> of coefficients <span class="math inline">\(\beta^R_{\lambda}\)</span> which is a <span class="math inline">\(p-\)</span>dimensional sequence indexed by <span class="math inline">\(\lambda\)</span>. Cross validation must be used the to select the <span class="math inline">\(\lambda\)</span> such that <span class="math inline">\(\beta^R_{\lambda}\)</span> minimizes the out-of-sample error.</p>
 <p>Let’s fit a ridge regression. Also, we can manually specify a grid of values for <span class="math inline">\(\lambda\)</span>:</p>
-<pre class="r"><code>grid &lt;- 10^ seq (10,-2, length =100)
+<pre class="r"><code>set.seed(1)
+grid &lt;- 10^ seq (10,-2, length =100)
 ridge.mod &lt;- glmnet(X.train, Y.train, alpha = 0, lambda = grid)  
 
 # alpha = 0 specifies that we are using a Ridge Regression.
@@ -342,54 +345,54 @@ el2norm.r &lt;- function(col){el2norm(coef(ridge.mod)[, col])}
 coef(ridge.mod)[,c(10,50,90)] %&gt;% rbind( map_dbl(c(10,50,90), el2norm.r) ) %&gt;% rbind(ridge.mod$lambda[c(10,50,90)])</code></pre>
 <pre><code>## 20 x 3 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                        s9           s49           s89
-## (Intercept)  3.100552e+03 -1.642019e+03 -345.77043617
-## PrivateYes  -1.907322e-02 -4.835283e+02 -504.99526940
-## Accept       7.431517e-06  2.577556e-01    1.63373924
-## Enroll       1.783060e-05  5.324137e-01   -1.43072121
-## Top10perc    3.877902e-04  1.019843e+01   60.61954496
-## Top25perc    3.475631e-04  7.940532e+00  -22.31523237
-## F.Undergrad  3.315524e-06  9.564331e-02    0.14580765
-## P.Undergrad  5.875664e-06  1.283981e-01    0.01142611
-## Outstate     2.922683e-07  8.303856e-03   -0.10231102
-## Room.Board   3.144912e-06  1.043023e-01    0.19815883
-## Books        1.463976e-05  3.393483e-01   -0.07713976
-## Personal     4.479713e-06  7.827989e-02    0.01818403
-## PhD          4.806404e-04  8.419201e+00  -12.15935258
-## Terminal     5.231937e-04  8.951213e+00   -1.68406036
-## S.F.Ratio    4.930160e-04  1.071608e+01   14.84022619
-## perc.alumni -1.259608e-04 -4.697841e+00    0.59594153
-## Expend       1.031089e-06  3.171805e-02    0.08660075
-## Grad.Rate    1.783698e-04  6.329675e+00   11.43949645
-##              3.100552e+03  1.711876e+03  615.83849498
+## (Intercept)  3.118028e+03 -2.415997e+03  231.81608434
+## PrivateYes  -2.696165e-02 -4.964185e+02 -661.19247088
+## Accept       9.715573e-06  3.134358e-01    1.77826472
+## Enroll       2.662444e-05  6.947055e-01   -1.27533920
+## Top10perc    6.794253e-04  1.488282e+01   86.92547784
+## Top25perc    5.983285e-04  1.088166e+01  -34.94138769
+## F.Undergrad  5.199477e-06  1.273835e-01    0.05419474
+## P.Undergrad  1.213187e-05  2.309573e-01   -0.03056227
+## Outstate     3.958645e-07  7.614102e-03   -0.12828208
+## Room.Board   4.759186e-06  1.399616e-01    0.28313187
+## Books        3.523183e-05  5.714569e-01    0.26976880
+## Personal     8.369619e-06  8.288952e-02    0.11487261
+## PhD          6.726713e-04  8.114758e+00  -12.36805850
+## Terminal     7.243822e-04  7.233512e+00    2.82203511
+## S.F.Ratio    5.516312e-04  1.154257e+01  -13.51179410
+## perc.alumni -3.098273e-04 -8.365358e+00   -1.81119850
+## Expend       1.634436e-06  3.524842e-02    0.02118322
+## Grad.Rate    3.206191e-04  8.064134e+00    8.80381612
+##              3.118028e+03  2.466617e+03  707.19190066
 ##              8.111308e+08  1.149757e+04    0.16297508</code></pre>
 <p>The last two rows are the <em>l-2-norm</em> and the <span class="math inline">\(\lambda\)</span> value. We can see that for <span class="math inline">\(\lambda = .16\)</span> we have the highest shrinkage of the coefficients</p>
 <p>We can also use the <code>predict</code> method to estimate coefficients at a new value of <span class="math inline">\(\lambda\)</span>, say <span class="math inline">\(\lambda = 80\)</span></p>
 <pre class="r"><code>predict(ridge.mod, s=80, type=&quot;coefficients&quot;)</code></pre>
 <pre><code>## 18 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                         1
-## (Intercept) -808.97174060
-## PrivateYes  -555.34941640
-## Accept         1.40738905
-## Enroll        -0.48903318
-## Top10perc     47.07621130
-## Top25perc    -12.62976976
-## F.Undergrad    0.06724295
-## P.Undergrad    0.02816964
-## Outstate      -0.07695085
-## Room.Board     0.22405145
-## Books         -0.01746563
-## Personal       0.01383666
-## PhD          -10.49745537
-## Terminal      -3.21081249
-## S.F.Ratio     14.57428063
-## perc.alumni   -3.38249800
-## Expend         0.08772614
-## Grad.Rate     11.66425194</code></pre>
+## (Intercept) -2.698107e+02
+## PrivateYes  -6.121242e+02
+## Accept       1.593882e+00
+## Enroll      -5.005744e-01
+## Top10perc    7.060799e+01
+## Top25perc   -2.290605e+01
+## F.Undergrad  3.085139e-03
+## P.Undergrad -1.522212e-04
+## Outstate    -1.151999e-01
+## Room.Board   3.024099e-01
+## Books        2.723027e-01
+## Personal     6.011289e-02
+## PhD         -1.064534e+01
+## Terminal    -5.831304e-01
+## S.F.Ratio   -9.814125e+00
+## perc.alumni -3.127758e+00
+## Expend       2.834260e-02
+## Grad.Rate    1.017593e+01</code></pre>
 <p>Let’s also look a the <code>%Dev</code> column when we print our model directly.</p>
 <pre class="r"><code># print(ridge.mod)   output is too long</code></pre>
 <p><code>%Dev</code> is the <em>Null Deviance</em> of the model. If the <em>Null Deviance</em> is very small, it signifies that the proposed model does not perform better than the null model. We can see that when lambda is very high, the <code>%Dev</code> is almost 0, but increases as lambda decreases, and the penalty on the coefficients is relaxed.</p>
 <p>Rather than supplying a pre-defined grid, we can use cross-validation to select the best lambda. The function <code>cv.glmnet</code> not only fits 100 models, but it tells us which one is the best.</p>
-<pre class="r"><code>set.seed(10)
+<pre class="r"><code>set.seed(1)
 
 ridge.cv &lt;- cv.glmnet(X.train, Y.train, alpha = 0)
 
@@ -400,7 +403,7 @@ ridge.RMSE &lt;- RMSE(ridge.pred)
 
 
 bestlam &lt;- ridge.cv$lambda.min</code></pre>
-<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 347.364 and its corresponding estimate of the test error is 59.102. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 1445.03.</p>
+<p>Here <code>cv.glmnet</code> uses 10-fold cross validation (by default) and returns a <code>cv.glmnet</code> object containing a sequence of models. The model that miminimized the MSE can be found using <code>lambda.min</code>. Here the best lambda is 523.658 and its corresponding estimate of the test error is 44.828. We could access the coefficients of this model by calling <code>coef(ridge.cv, s = &quot;lambda.min&quot;)</code> and calculate their <em>l-2-norm</em> 1428.74.</p>
 </div>
 <div id="the-lasso" class="section level2">
 <h2><span class="header-section-number">1.3</span> The Lasso</h2>
@@ -414,24 +417,24 @@ lasso.lam &lt;- lasso.cv$lambda.min
 coef(lasso.cv, s = &quot;lambda.min&quot;)</code></pre>
 <pre><code>## 18 x 1 sparse Matrix of class &quot;dgCMatrix&quot;
 ##                         1
-## (Intercept) -404.32771419
-## PrivateYes  -202.77471484
-## Accept         1.37604966
-## Enroll         0.02134891
-## Top10perc     17.65476802
-## Top25perc      .         
+## (Intercept) -103.66573558
+## PrivateYes  -580.85348775
+## Accept         1.70406630
+## Enroll        -0.78559016
+## Top10perc     74.87113588
+## Top25perc    -24.96415815
 ## F.Undergrad    .         
-## P.Undergrad    0.03286638
-## Outstate      -0.03642873
-## Room.Board     .         
-## Books          .         
-## Personal       .         
-## PhD            .         
-## Terminal      -4.64803483
-## S.F.Ratio      5.60167335
-## perc.alumni   -1.55170529
-## Expend         0.07676709
-## Grad.Rate      2.11049080</code></pre>
+## P.Undergrad    .         
+## Outstate      -0.11343325
+## Room.Board     0.26498802
+## Books          0.22454134
+## Personal       0.07655156
+## PhD           -9.13154723
+## Terminal       .         
+## S.F.Ratio     -7.85770983
+## perc.alumni   -0.62191812
+## Expend         0.01889981
+## Grad.Rate      7.33869822</code></pre>
 <pre class="r"><code>lasso.mod &lt;- glmnet(X.train, Y.train, alpha = 1, lambda = grid)
 
 lasso.pred &lt;- predict(lasso.mod, s=lasso.lam, newx = X.test)</code></pre>
@@ -451,15 +454,15 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="right">45.324</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">59.102</td>
+<td align="right">44.828</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">50.975</td>
+<td align="right">43.967</td>
 </tr>
 </tbody>
 </table>
@@ -468,7 +471,7 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <div id="principle-components-regression" class="section level2">
 <h2><span class="header-section-number">1.4</span> Principle Components Regression</h2>
 <pre class="r"><code>library(pls)
-set.seed(2)
+set.seed(1)
 PCR.mod &lt;- pcr(Apps ~ ., subset = train, data = data_df,  validation = &quot;CV&quot;)
 
 validationplot(PCR.mod, val.type = &quot;MSEP&quot;)</code></pre>
@@ -483,25 +486,25 @@ validationplot(PCR.mod, val.type = &quot;MSEP&quot;)</code></pre>
 ## VALIDATION: RMSEP
 ## Cross-validated using 10 random segments.
 ##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
-## CV            3284     3255     1323     1280     1272     1051    689.9
-## adjCV         3284     3248     1320     1278     1268     1044    684.8
+## CV            5009     4484     2545     2515     2144     1938     1914
+## adjCV         5009     4649     2535     2504     2085     1901     1880
 ##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
-## CV       692.4    704.4    709.1     701.8     666.8     669.5     671.3
-## adjCV    687.5    699.0    703.4     696.1     661.7     664.2     665.8
+## CV        1908     1988     1992      1915      1899      1906      1959
+## adjCV     1875     1947     1950      1874      1857      1864      1914
 ##        14 comps  15 comps  16 comps  17 comps
-## CV        671.1     680.3     686.7     688.4
-## adjCV     665.6     674.0     680.0     681.5
+## CV         1924      1818      1820      1819
+## adjCV      1885      1775      1777      1775
 ## 
 ## TRAINING: % variance explained
 ##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
-## X      52.609    87.55    94.87    97.96    98.89    99.58    99.93
-## Apps    4.232    84.54    85.73    86.38    92.27    96.49    96.49
+## X       46.99    87.98    95.51    97.64    98.71    99.53    99.93
+## Apps    30.24    78.36    79.67    92.75    92.79    92.83    92.85
 ##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
 ## X       99.98   100.00    100.00    100.00    100.00    100.00    100.00
-## Apps    96.49    96.49     96.56     96.86     96.86     96.88     96.91
+## Apps    93.06    93.06     93.78     94.18     94.18     94.19     94.24
 ##       15 comps  16 comps  17 comps
-## X       100.00    100.00    100.00
-## Apps     96.96     96.98     97.01</code></pre>
+## X       100.00    100.00     100.0
+## Apps     95.09     95.09      95.2</code></pre>
 <p>The summary which reveals the training error and variance explained per number of components included, further shows that including more than 6 components gives no benefit. However it may be best to use even less components to create a better model. Three components should work, since it explains 93% of the variance.</p>
 <pre class="r"><code>PCR.pred &lt;- predict(PCR.mod, X.test, ncomp = 3)
 PCR.RMSE &lt;- RMSE(PCR.pred)
@@ -518,19 +521,19 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="right">45.324</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">59.102</td>
+<td align="right">44.828</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">50.975</td>
+<td align="right">43.967</td>
 </tr>
 <tr class="even">
 <td align="left">PCR</td>
-<td align="right">83.059</td>
+<td align="right">73.931</td>
 </tr>
 </tbody>
 </table>
@@ -538,7 +541,8 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <div id="partial-least-squares" class="section level2">
 <h2><span class="header-section-number">1.5</span> Partial Least Squares</h2>
 <p>Partial least sqaures is a supervised alternative to principle components regression. PLS attempts to choose components that explain variance in both the predictors and response.</p>
-<pre class="r"><code>PLS.mod &lt;- plsr(Apps ~ ., data = data_df, subset = train, validation = &quot;CV&quot;)
+<pre class="r"><code>set.seed(1)
+PLS.mod &lt;- plsr(Apps ~ ., data = data_df, subset = train, validation = &quot;CV&quot;)
 summary(PLS.mod)</code></pre>
 <pre><code>## Data:    X dimension: 194 17 
 ##  Y dimension: 194 1
@@ -548,25 +552,25 @@ summary(PLS.mod)</code></pre>
 ## VALIDATION: RMSEP
 ## Cross-validated using 10 random segments.
 ##        (Intercept)  1 comps  2 comps  3 comps  4 comps  5 comps  6 comps
-## CV            3284     1349     1251     1071    771.1    688.2    685.0
-## adjCV         3284     1336     1251     1070    765.3    684.2    680.6
+## CV            5009     2540     2604     2246     1901     1916     1921
+## adjCV         5009     2518     2624     2206     1868     1882     1886
 ##        7 comps  8 comps  9 comps  10 comps  11 comps  12 comps  13 comps
-## CV       689.3    699.9    694.8     661.3     661.6     667.9     664.8
-## adjCV    684.8    694.5    674.2     656.8     656.7     662.2     659.5
+## CV        1980     2007     1976      1895      1900      1875      1832
+## adjCV     1941     1964     1912      1853      1856      1826      1788
 ##        14 comps  15 comps  16 comps  17 comps
-## CV        664.7     666.4     666.2     668.9
-## adjCV     659.3     660.8     660.6     663.0
+## CV         1818      1822      1824      1819
+## adjCV      1775      1778      1779      1775
 ## 
 ## TRAINING: % variance explained
 ##       1 comps  2 comps  3 comps  4 comps  5 comps  6 comps  7 comps
-## X       36.80    86.61    93.35    96.18    98.79    99.58    99.86
-## Apps    84.58    86.22    90.46    95.49    96.41    96.49    96.50
+## X       43.67    82.78    92.34    97.64    98.49    99.02    99.56
+## Apps    79.68    82.55    90.51    92.83    92.89    92.97    93.05
 ##       8 comps  9 comps  10 comps  11 comps  12 comps  13 comps  14 comps
-## X       99.98    99.98    100.00     100.0    100.00    100.00    100.00
-## Apps    96.50    96.84     96.86      96.9     96.96     96.97     96.97
+## X       99.98    99.98     100.0    100.00    100.00    100.00    100.00
+## Apps    93.09    94.17      94.2     94.54     95.09     95.09     95.09
 ##       15 comps  16 comps  17 comps
-## X       100.00    100.00    100.00
-## Apps     96.98     96.98     97.01</code></pre>
+## X       100.00    100.00     100.0
+## Apps     95.09     95.12      95.2</code></pre>
 <pre class="r"><code>validationplot(PLS.mod)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-16-1.png" width="672" /></p>
 <p>We can see that 3 components explains about 93% of the variance and gives a low training RMSE. It’s better to keep the amount of components lowe to decrease the variance of the model, even if more components give slightly lower training RMSE.</p>
@@ -584,23 +588,23 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="right">45.324</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">59.102</td>
+<td align="right">44.828</td>
 </tr>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">50.975</td>
+<td align="right">43.967</td>
 </tr>
 <tr class="even">
 <td align="left">PCR</td>
-<td align="right">83.059</td>
+<td align="right">73.931</td>
 </tr>
 <tr class="odd">
 <td align="left">PLS</td>
-<td align="right">69.416</td>
+<td align="right">53.542</td>
 </tr>
 </tbody>
 </table>
@@ -610,7 +614,8 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <div id="simplifying-with-caret" class="section level1">
 <h1><span class="header-section-number">2</span> Simplifying with Caret</h1>
 <p>In this section, I write a function using caret to train all the models at once. Each model’s parameters is optimized by cross validation automatically, as specified in the trainControl function.</p>
-<pre class="r"><code>library(caret)
+<pre class="r"><code>set.seed(1)
+library(caret)
 
 caret_RMSE &lt;- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
 
@@ -650,36 +655,36 @@ knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = &quot;Result pr
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">ridge</td>
-<td align="right">46.492</td>
-</tr>
-<tr class="even">
-<td align="left">lars</td>
-<td align="right">46.492</td>
-</tr>
-<tr class="odd">
-<td align="left">lm</td>
-<td align="right">46.492</td>
-</tr>
-<tr class="even">
 <td align="left">lasso</td>
-<td align="right">46.852</td>
+<td align="right">40.485</td>
+</tr>
+<tr class="even">
+<td align="left">glmnet</td>
+<td align="right">40.490</td>
 </tr>
 <tr class="odd">
-<td align="left">glmnet</td>
-<td align="right">46.977</td>
+<td align="left">ridge</td>
+<td align="right">40.574</td>
+</tr>
+<tr class="even">
+<td align="left">lm</td>
+<td align="right">40.579</td>
+</tr>
+<tr class="odd">
+<td align="left">lars</td>
+<td align="right">40.579</td>
 </tr>
 <tr class="even">
 <td align="left">pls</td>
-<td align="right">61.225</td>
+<td align="right">48.381</td>
 </tr>
 <tr class="odd">
 <td align="left">pcr</td>
-<td align="right">88.725</td>
+<td align="right">69.426</td>
 </tr>
 </tbody>
 </table>
-<p>The my_results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods.</p>
+<p>The my_results are quite similar to running each model individually.The models seem to perform slightly better under caret, probably because of the preprocessing and optimization of parameters done by the caret algorithm.</p>
 </div>
 <div id="subset-selection" class="section level1">
 <h1><span class="header-section-number">3</span> Subset selection</h1>
@@ -793,15 +798,15 @@ show_metrics(sum.FWD)</code></pre>
 <pre class="r"><code>BEST_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                              expr      min       lq
-##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.093272 3.288136
-##      mean   median       uq      max neval
-##  4.127863 3.598927 4.352843 14.51823   100</code></pre>
+##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.186025 4.304738
+##     mean   median       uq      max neval
+##  5.95659 5.271165 7.070487 14.24225   100</code></pre>
 <pre class="r"><code>FWD_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                                                  expr
 ##  regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
-##       min      lq    mean   median       uq      max neval
-##  2.744229 2.87404 3.66638 3.182119 3.778638 14.34198   100</code></pre>
+##       min       lq     mean   median       uq      max neval
+##  2.848534 3.167591 4.251584 3.535255 4.294281 34.21155   100</code></pre>
 <p>We can see that forward selection is on average a few miliseconds faster than the full model selection.</p>
 <p>Let’s compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection.</p>
 <pre class="r"><code>sum.FWD$which[10, ] == bmod.summary$which[10, ]</code></pre>
@@ -849,13 +854,13 @@ tree.table &lt;- table(tree.pred, Private.test)</code></pre>
 <pre class="r"><code>tree.table</code></pre>
 <pre><code>##          Private.test
 ## tree.pred  No Yes
-##       No  132  43
-##       Yes  32 376</code></pre>
+##       No  133  31
+##       Yes  31 388</code></pre>
 <p>By dividing the counts in the off-diagonal by the total observations, we get the misclassification error:</p>
 <pre class="r"><code>error_rate = function(myTable)  {(myTable[1,2] + myTable[2, 1]) / (sum(myTable))}
 
 error_rate(tree.table)</code></pre>
-<pre><code>## [1] 0.1286449</code></pre>
+<pre><code>## [1] 0.1063465</code></pre>
 </div>
 <div id="cost-complexity-pruning" class="section level2">
 <h2><span class="header-section-number">4.2</span> Cost-complexity pruning</h2>
@@ -864,13 +869,13 @@ error_rate(tree.table)</code></pre>
 cv.college = cv.tree(tree.college, FUN = prune.misclass)
 cv.college</code></pre>
 <pre><code>## $size
-## [1] 8 5 3 1
+## [1] 8 6 3 2 1
 ## 
 ## $dev
-## [1] 20 17 18 48
+## [1] 19 19 21 32 51
 ## 
 ## $k
-## [1] -Inf  0.0  2.5 17.5
+## [1]      -Inf  0.000000  1.666667 14.000000 22.000000
 ## 
 ## $method
 ## [1] &quot;misclass&quot;
@@ -886,7 +891,7 @@ ggplot(data = ., aes(x = index, y = value, col = metric)) +
 
 plot_cv(cv.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-34-1.png" width="672" /></p>
-<p>It looks like the CV error is minimized for a tree of size 5.</p>
+<p>It looks like the CV error is minimized for a tree of size 8.</p>
 <p>Now we can apply the <code>prune.misclass</code> function to obtain this tree:</p>
 <pre class="r"><code>set.seed(1)
 prune.college &lt;- prune.misclass(tree.college, best = best_size_1)
@@ -899,10 +904,10 @@ prune.table &lt;- table(prune.pred, Private.test)</code></pre>
 <pre class="r"><code>prune.table</code></pre>
 <pre><code>##           Private.test
 ## prune.pred  No Yes
-##        No  132  43
-##        Yes  32 376</code></pre>
+##        No  133  30
+##        Yes  31 389</code></pre>
 <pre class="r"><code>error_rate(prune.table)</code></pre>
-<pre><code>## [1] 0.1286449</code></pre>
+<pre><code>## [1] 0.1046312</code></pre>
 <p>Interestingly we have the same exact test error! If you compare both tables, you can see that the numbers are different but the sums are the same, yielding the same fraction. Now we have a much more interpretable tree with the same exact performance.</p>
 </div>
 <div id="fitting-regression-trees" class="section level2">
@@ -915,12 +920,12 @@ summary(rtree.college)</code></pre>
 ## Regression tree:
 ## tree(formula = Apps ~ ., data = College, subset = train)
 ## Variables actually used in tree construction:
-## [1] &quot;Accept&quot;   &quot;Terminal&quot;
+## [1] &quot;Accept&quot;    &quot;Top25perc&quot;
 ## Number of terminal nodes:  6 
-## Residual mean deviance:  494400 = 92940000 / 188 
+## Residual mean deviance:  5284000 = 993400000 / 188 
 ## Distribution of residuals:
-##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-## -2705.00  -278.90   -48.86     0.00   252.60  2641.00</code></pre>
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## -8766.0  -471.8  -106.9     0.0   266.9 23620.0</code></pre>
 <pre class="r"><code>plot(rtree.college)
 text(rtree.college, pretty = 0)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-39-1.png" width="672" /></p>
@@ -928,7 +933,7 @@ text(rtree.college, pretty = 0)</code></pre>
 <pre class="r"><code>rtree.yhat &lt;- predict(rtree.college, College[-train, ])
 TREE.RMSE &lt;- RMSE(rtree.yhat)
 TREE.RMSE</code></pre>
-<pre><code>## [1] 86.72674</code></pre>
+<pre><code>## [1] 63.64753</code></pre>
 <pre class="r"><code>set.seed(1)
 rcv.college = cv.tree(rtree.college)
 plot_cv(rcv.college)</code></pre>
@@ -938,10 +943,10 @@ plot_cv(rcv.college)</code></pre>
 ## [1] 6 5 4 3 2 1
 ## 
 ## $dev
-## [1]  206528072  261507688  271044847  333058756  866956674 2108880939
+## [1] 2103518473 2137107171 2275506070 2892084499 3482195433 5160836679
 ## 
 ## $k
-## [1]       -Inf   39821400   46426080   61370067  420325498 1409275406
+## [1]       -Inf   50248845   60525208  333091597  589316171 2790697793
 ## 
 ## $method
 ## [1] &quot;deviance&quot;
@@ -959,7 +964,7 @@ text(rprune.college, pretty = 0)</code></pre>
 <pre class="r"><code>rcollege.pred = predict(rprune.college, newdata = College[-train, ])
 
 RMSE(rcollege.pred)</code></pre>
-<pre><code>## [1] 86.72674</code></pre>
+<pre><code>## [1] 63.64753</code></pre>
 <p>Noice that this performs exactly the same as the unpruned tree even though it uses <code>Terminal</code>: percent of faculty with terminal degrees, as the secondary predictor.</p>
 <pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Tree&quot;, TREE.RMSE)) %&gt;% arrange(RMSE)
 knitr::kable(my_results, digits = 3)</code></pre>
@@ -973,27 +978,27 @@ knitr::kable(my_results, digits = 3)</code></pre>
 <tbody>
 <tr class="odd">
 <td align="left">Lasso</td>
-<td align="right">50.975</td>
+<td align="right">43.967</td>
 </tr>
 <tr class="even">
 <td align="left">Ridge</td>
-<td align="right">59.102</td>
+<td align="right">44.828</td>
 </tr>
 <tr class="odd">
-<td align="left">PLS</td>
-<td align="right">69.416</td>
+<td align="left">OLS</td>
+<td align="right">45.324</td>
 </tr>
 <tr class="even">
-<td align="left">PCR</td>
-<td align="right">83.059</td>
+<td align="left">PLS</td>
+<td align="right">53.542</td>
 </tr>
 <tr class="odd">
 <td align="left">Tree</td>
-<td align="right">86.727</td>
+<td align="right">63.648</td>
 </tr>
 <tr class="even">
-<td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="left">PCR</td>
+<td align="right">73.931</td>
 </tr>
 </tbody>
 </table>
@@ -1014,15 +1019,15 @@ bag.college</code></pre>
 ##                      Number of trees: 500
 ## No. of variables tried at each split: 17
 ## 
-##           Mean of squared residuals: 577027.7
-##                     % Var explained: 94.59</code></pre>
+##           Mean of squared residuals: 8663121
+##                     % Var explained: 65.11</code></pre>
 <pre class="r"><code>varImpPlot(bag.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-44-1.png" width="672" /></p>
 <p>To discuss these error metrics, we need to discuss <span class="math inline">\(OOB\)</span>: out-of-bag observations. For each observation, it will be left out of about <span class="math inline">\(B/3\)</span> bootstrap sample, and is said to be an out-of-bag observation. TWe can estimate the error of a single observation by finding the residual each time it was out of bag, and averaging them. The root mean square of these residuals estimates the test error. The <code>%IncMSE</code> reports the mean decrease of accuracy in predictions on the out-of-bag samples when a given variable is excluded from the model, where the <span class="math inline">\(OOB\)</span> sample is the observations left out when we take a bootstrap sample. The <code>IncNodePurity</code> is a measure of the total decrease in node impurity that results from splits on that variable, averaged over all trees. In case of regression trees, node impurity is measured using RSS</p>
 <p>Note that bagging is a special case of random forests where all the predictors are used, so we can call the <code>randomForest</code> function and specify <code>mtry = 17</code>.</p>
 <pre class="r"><code>yhat.bag &lt;- predict(bag.college, newdata = College[-train, ])
 RMSE(yhat.bag)</code></pre>
-<pre><code>## [1] 80.26717</code></pre>
+<pre><code>## [1] 57.13291</code></pre>
 <p>This is an improvement over the plain regression tree.</p>
 </div>
 <div id="random-forests" class="section level2">
@@ -1033,27 +1038,27 @@ rf.college &lt;- randomForest(Apps ~ ., data = College, subset = train, mtry = 6
 yhat.rf = predict(rf.college, newdata = College[-train, ])
 RF.RMSE &lt;- RMSE(yhat.rf)
 RF.RMSE</code></pre>
-<pre><code>## [1] 81.62966</code></pre>
+<pre><code>## [1] 55.09523</code></pre>
 <p>The random forest did not improve over bagging.</p>
 <pre class="r"><code>importance(rf.college)</code></pre>
 <pre><code>##                %IncMSE IncNodePurity
-## Private      3.3420225      26115112
-## Accept      29.5321125     911421122
-## Enroll      16.2100522     439991826
-## Top10perc    5.2777420      25740880
-## Top25perc    7.3245285      33339335
-## F.Undergrad 12.8048040     314155716
-## P.Undergrad  4.4498262      68083238
-## Outstate     4.0638889      17406781
-## Room.Board   3.0482511      19996038
-## Books        2.2165411      11171856
-## Personal     0.9292713      12576815
-## PhD          5.1734957      51314621
-## Terminal     3.0567707      23836370
-## S.F.Ratio    2.7990116      14517150
-## perc.alumni -0.4731823       6842047
-## Expend       8.3046985      40450479
-## Grad.Rate    3.4572604      13614836</code></pre>
+## Private      2.3399770      13631854
+## Accept      18.7177910    1763876068
+## Enroll      12.4804402    1118401360
+## Top10perc    2.7414120     108871243
+## Top25perc    1.4729585     139928982
+## F.Undergrad  9.3128040     818290221
+## P.Undergrad  2.6593772     226790494
+## Outstate    -2.1680527      61126749
+## Room.Board   0.3275687      28617912
+## Books       -2.9301220      65301093
+## Personal    -2.7154225      57527289
+## PhD         -0.2005949      59326427
+## Terminal    -1.9788116      48049791
+## S.F.Ratio    1.1426781     126809177
+## perc.alumni  0.7150447      34342168
+## Expend       3.6025646      41975290
+## Grad.Rate    3.6260142      82016293</code></pre>
 <pre class="r"><code>varImpPlot(rf.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-47-1.png" width="672" /></p>
 <p>The three clear most important variables are the number of accepted applicants, number of new students enrolled, and number of fulltime undergraduates. Even though the performance on this test set was not much better than bagging, I believe this model would generalize much better. The bagging model was dominated by the <code>Accept</code> predictor and did not properly weight the contributions of <code>Enroll</code> and <code>F.Undergrad</code>, even though they were still identified as the most important. Instead the mysterious <code>Top25perc</code> found its way to the top, just like in the original tree.</p>
@@ -1069,29 +1074,29 @@ boost.college &lt;- gbm(Apps ~ ., data = College[-train, ], distribution = &quot
 summary(boost.college)</code></pre>
 <p><img src="ML_files/figure-html/unnamed-chunk-48-1.png" width="672" /></p>
 <pre><code>##                     var     rel.inf
-## Accept           Accept 70.98638834
-## Enroll           Enroll 11.48659949
-## F.Undergrad F.Undergrad  4.88653297
-## Top25perc     Top25perc  3.54032591
-## Top10perc     Top10perc  2.88195991
-## Grad.Rate     Grad.Rate  1.37725695
-## P.Undergrad P.Undergrad  1.30974234
-## Outstate       Outstate  0.88677566
-## Expend           Expend  0.68957338
-## S.F.Ratio     S.F.Ratio  0.52743209
-## Room.Board   Room.Board  0.47154586
-## Terminal       Terminal  0.30653373
-## PhD                 PhD  0.18769817
-## Books             Books  0.18322066
-## Personal       Personal  0.17511831
-## perc.alumni perc.alumni  0.07775720
-## Private         Private  0.02553904</code></pre>
+## Accept           Accept 71.03106826
+## Enroll           Enroll 13.47969809
+## Top25perc     Top25perc  4.06415091
+## F.Undergrad F.Undergrad  2.92793274
+## Top10perc     Top10perc  2.26276392
+## Outstate       Outstate  1.24563265
+## Terminal       Terminal  1.19311365
+## Grad.Rate     Grad.Rate  1.10654086
+## Expend           Expend  0.85114060
+## PhD                 PhD  0.64147680
+## Room.Board   Room.Board  0.45554150
+## S.F.Ratio     S.F.Ratio  0.21998081
+## P.Undergrad P.Undergrad  0.16033008
+## Books             Books  0.11381049
+## perc.alumni perc.alumni  0.11320335
+## Personal       Personal  0.10219142
+## Private         Private  0.03142387</code></pre>
 <p>Note that the distribution assumed on the response is gaussian, since this is a regression problem (bernoulli for classification), and the shrinkage parameter is by default set to <span class="math inline">\(.001\)</span>. The relative influence plot confirms that accept and enroll are by far the most important variables.</p>
 <pre class="r"><code>yhat.boost &lt;- predict(boost.college, newdata = College[-train, ], n.trees = 5000)
 BOOST.RMSE &lt;- RMSE(yhat.boost)
 BOOST.RMSE</code></pre>
-<pre><code>## [1] 57.69336</code></pre>
-<p>Boosting well outperforms the random forest approach and is on par with ridge regression.</p>
+<pre><code>## [1] 25.14018</code></pre>
+<p>Wow, boosting emerges as the clear winner amongst all the models tested so far.</p>
 <pre class="r"><code>my_results &lt;- rbind(my_results, list(&quot;Boost&quot;, BOOST.RMSE), list(&quot;RF&quot;, RF.RMSE)) %&gt;% arrange(RMSE)
 knitr::kable(my_results, digits = 3)</code></pre>
 <table>
@@ -1103,39 +1108,40 @@ knitr::kable(my_results, digits = 3)</code></pre>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">Lasso</td>
-<td align="right">50.975</td>
+<td align="left">Boost</td>
+<td align="right">25.140</td>
 </tr>
 <tr class="even">
-<td align="left">Boost</td>
-<td align="right">57.693</td>
+<td align="left">Lasso</td>
+<td align="right">43.967</td>
 </tr>
 <tr class="odd">
 <td align="left">Ridge</td>
-<td align="right">59.102</td>
-</tr>
-<tr class="even">
-<td align="left">PLS</td>
-<td align="right">69.416</td>
-</tr>
-<tr class="odd">
-<td align="left">RF</td>
-<td align="right">81.630</td>
-</tr>
-<tr class="even">
-<td align="left">PCR</td>
-<td align="right">83.059</td>
-</tr>
-<tr class="odd">
-<td align="left">Tree</td>
-<td align="right">86.727</td>
+<td align="right">44.828</td>
 </tr>
 <tr class="even">
 <td align="left">OLS</td>
-<td align="right">191.326</td>
+<td align="right">45.324</td>
+</tr>
+<tr class="odd">
+<td align="left">PLS</td>
+<td align="right">53.542</td>
+</tr>
+<tr class="even">
+<td align="left">RF</td>
+<td align="right">55.095</td>
+</tr>
+<tr class="odd">
+<td align="left">Tree</td>
+<td align="right">63.648</td>
+</tr>
+<tr class="even">
+<td align="left">PCR</td>
+<td align="right">73.931</td>
 </tr>
 </tbody>
 </table>
+<p>Actually this result was unexpected. I have run this same code without setting the seed on the train/test split to get different results, and boosting consistently performed similar to ridge and lasso. However, it seems to perform anomolously well when setting the seed to 1.</p>
 </div>
 </div>
 

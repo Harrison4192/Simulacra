@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(cache = T)
+knitr::opts_chunk$set(cache = F)
 knitr::opts_chunk$set(message = FALSE)
 knitr::opts_chunk$set(warning = FALSE)
 library(ISLR)
@@ -52,6 +52,7 @@ data_df <- as.data.frame(cbind(X, Y))
 Since we will be testing the performance of multiple models, we need to split the data into a test and training set.
 
 ```{r}
+set.seed(1)
 train <- sample(1:nrow(X), replace = FALSE, round(nrow(X) * .25))
 X.train <- X[train, ]
 Y.train <- Y[train]
@@ -64,9 +65,10 @@ Y.test <- Y[-train]
 Let's fit a least-squares regression, which can be done using the lm function. The 17 coefficients of the least-squares regression model are fit by minimizing the RSS, the sum of squared residuals. 
 
 ```{r}
-LM.mod <- lm(Apps ~ . , data = data_df)
+set.seed(1)
+LM.mod <- lm(Apps ~ . , data = data_df, subset = train)
 
-LM.pred <- predict(LM.mod, newx = X.test)
+LM.pred <- predict(LM.mod, newdata = data_df[-train, ])
 
 RMSE <- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
 
@@ -82,8 +84,9 @@ my_results <- tibble(model = "OLS",
 knitr::kable(my_results, digits = 3)
 ```
 
-The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive, give or take 7.6 apps. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%, we can infer our error is quite high. 
 
+
+The RMSE can be interpreted as an estimate for the standard deviation of predicted values. In the context of our College data, given a new set of observations, we could estimate the amount of applications a college will receive by the RMSE. The percent error, given by the RMSE over the average value of Y, gives an estimate of percent average deviation of our prediction. This helps interpret the error, given the average college receives `r round(mean(Y))` and our percent error is `r OLS.Percent.Err`%.
 
 
 ##Ridge Regression
@@ -95,6 +98,7 @@ Unlike the least squares estimate which produces only one set of coefficients, r
 Let's fit a ridge regression. Also, we can manually specify a grid of values for $\lambda$:
 
 ```{r}
+set.seed(1)
 grid <- 10^ seq (10,-2, length =100)
 ridge.mod <- glmnet(X.train, Y.train, alpha = 0, lambda = grid)  
 
@@ -142,7 +146,7 @@ Let's also look a the `%Dev` column when we print our model directly.
 Rather than supplying a pre-defined grid,  we can use cross-validation to select the best lambda. The function `cv.glmnet` not only fits 100 models, but it tells us which one is the best.  
 
 ```{r}
-set.seed(10)
+set.seed(1)
 
 ridge.cv <- cv.glmnet(X.train, Y.train, alpha = 0)
 
@@ -153,6 +157,7 @@ ridge.RMSE <- RMSE(ridge.pred)
 
 
 bestlam <- ridge.cv$lambda.min
+
 ```
 Here `cv.glmnet` uses 10-fold cross validation (by default) and returns a `cv.glmnet` object containing a sequence of models. The model that miminimized the MSE can be found using `lambda.min`. Here the best lambda is `r round(bestlam, 3)` and its corresponding estimate of the test error is `r round(ridge.RMSE, 3)`. We could access the coefficients of this model by calling `coef(ridge.cv, s = "lambda.min")` and calculate their *l-2-norm* `r round(el2norm(coef(ridge.cv, s = "lambda.min")), 2)`.
 
@@ -194,7 +199,7 @@ For some reason, the ridge and lasso perform substantially worse than the ordina
 
 ```{r}
 library(pls)
-set.seed(2)
+set.seed(1)
 PCR.mod <- pcr(Apps ~ ., subset = train, data = data_df,  validation = "CV")
 
 validationplot(PCR.mod, val.type = "MSEP")
@@ -222,6 +227,7 @@ knitr::kable(my_results, digits = 3)
 Partial least sqaures is a supervised alternative to principle components regression. PLS attempts to choose components that explain variance in both the predictors and response. 
 
 ```{r}
+set.seed(1)
 PLS.mod <- plsr(Apps ~ ., data = data_df, subset = train, validation = "CV")
 summary(PLS.mod)
 validationplot(PLS.mod)
@@ -244,6 +250,7 @@ Since PLS supervises the choice of components, it can be more effective than PCR
 In this section, I write a function using caret to train all the models at once. Each model's parameters is optimized by cross validation automatically, as specified in the trainControl function. 
 
 ```{r message = FALSE}
+set.seed(1)
 library(caret)
 
 caret_RMSE <- function(x){sqrt(sum((x-Y.test)^2))/length(x)}
@@ -280,7 +287,7 @@ map(caret_names, my_caret) %>%
 knitr::kable(caret_table, digits = 3, booktabs = TRUE, caption = "Result produced by Caret. Models arranged by RMSE.")
 ```
 
-The my_results are quite similar to running each model individually. The ridge and lasso are slightly better, probably because the caret algorithm picked a better lambda. However there is a noticable discrepancy between the original least squares call and this least-squares call, which is comparable to other regression methods. 
+The my_results are quite similar to running each model individually.The models seem to perform slightly better under caret, probably because of the preprocessing and optimization of parameters done by the caret algorithm. 
 
 # Subset selection
 
@@ -623,10 +630,11 @@ BOOST.RMSE <- RMSE(yhat.boost)
 BOOST.RMSE
 ```
 
-Boosting well outperforms the random forest approach and is on par with ridge regression. 
+Wow, boosting emerges as the clear winner amongst all the models tested so far.
 
 ```{r}
 my_results <- rbind(my_results, list("Boost", BOOST.RMSE), list("RF", RF.RMSE)) %>% arrange(RMSE)
 knitr::kable(my_results, digits = 3)
 ```
 
+Actually this result was unexpected. I have run this same code without setting the seed on the train/test split to get different results, and boosting consistently performed similar to ridge and lasso. However, it seems to perform anomolously well when setting the seed to 1. 
