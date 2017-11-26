@@ -245,6 +245,7 @@ $(document).ready(function () {
 <li><a href="#random-forests"><span class="toc-section-number">4.5</span> Random Forests</a></li>
 <li><a href="#boosting"><span class="toc-section-number">4.6</span> Boosting</a></li>
 </ul></li>
+<li><a href="#support-vector-machines"><span class="toc-section-number">5</span> Support Vector Machines</a></li>
 </ul>
 </div>
 
@@ -798,15 +799,15 @@ show_metrics(sum.FWD)</code></pre>
 <pre class="r"><code>BEST_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                              expr      min       lq
-##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.186025 4.304738
+##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.004913 3.500291
 ##     mean   median       uq      max neval
-##  5.95659 5.271165 7.070487 14.24225   100</code></pre>
+##  5.13265 4.310343 6.365104 15.36862   100</code></pre>
 <pre class="r"><code>FWD_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                                                  expr
 ##  regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
 ##       min       lq     mean   median       uq      max neval
-##  2.848534 3.167591 4.251584 3.535255 4.294281 34.21155   100</code></pre>
+##  2.683556 3.071442 4.420644 3.354546 3.782163 78.56575   100</code></pre>
 <p>We can see that forward selection is on average a few miliseconds faster than the full model selection.</p>
 <p>Let’s compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection.</p>
 <pre class="r"><code>sum.FWD$which[10, ] == bmod.summary$which[10, ]</code></pre>
@@ -859,12 +860,14 @@ tree.table &lt;- table(tree.pred, Private.test)</code></pre>
 <p>By dividing the counts in the off-diagonal by the total observations, we get the misclassification error:</p>
 <pre class="r"><code>error_rate = function(myTable)  {(myTable[1,2] + myTable[2, 1]) / (sum(myTable))}
 
-error_rate(tree.table)</code></pre>
+tree_error = error_rate(tree.table)
+
+tree_error</code></pre>
 <pre><code>## [1] 0.1063465</code></pre>
 </div>
 <div id="cost-complexity-pruning" class="section level2">
 <h2><span class="header-section-number">4.2</span> Cost-complexity pruning</h2>
-<p>Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less copmlex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: <span class="math display">\[\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|\]</span> Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree’s performance on the test set.</p>
+<p>Fitting a deep classification tree may produce good predictions on the training set but is likely to overfit the data, leading to poor performance on the test set. It may be better to build a less complex tree that has more bias but lower variance when we test it against new data. To accomplish this we can use a formula that penalizes the complexity, or number of terminal nodes of the tree: <span class="math display">\[\sum_{m = 1}^{|T|}\sum_{i:x_i\in R_m}(y_i - \hat{y_{R_m}})^2+\alpha |T|\]</span> Alpha is the tuning parameter that adds a penalty for more leaves. When alpha is 0, we get the original tree. As it increases, we get a sequence of subtrees, with less or equal node to the previous tree. Cross validation can be used to select the optimal value for alpha. This process is done on the training data set. Once we choose an alpha, we can test that tree’s performance on the test set.</p>
 <pre class="r"><code>set.seed(1)
 cv.college = cv.tree(tree.college, FUN = prune.misclass)
 cv.college</code></pre>
@@ -1143,6 +1146,135 @@ knitr::kable(my_results, digits = 3)</code></pre>
 </table>
 <p>Actually this result was unexpected. I have run this same code without setting the seed on the train/test split to get different results, and boosting consistently performed similar to ridge and lasso. However, it seems to perform anomolously well when setting the seed to 1.</p>
 </div>
+</div>
+<div id="support-vector-machines" class="section level1">
+<h1><span class="header-section-number">5</span> Support Vector Machines</h1>
+<p>Support vector machines can be used for binary classification problems. They partition the predictor space by a separating hyperplace (a flat, affine, n-1 dimensional subspace), which aims to classify all points on either side into a single label, if the data is indeed linearly seprable. Here we can apply it to predict whether or not a college is public or private.</p>
+<pre class="r"><code>set.seed(1)
+library(e1071)
+svm.fit &lt;- svm(Private ~ ., data = College, kernel = &quot;linear&quot;, cost = 10, scale = FALSE)</code></pre>
+<pre class="r"><code>summary(svm.fit
+        )</code></pre>
+<pre><code>## 
+## Call:
+## svm(formula = Private ~ ., data = College, kernel = &quot;linear&quot;, 
+##     cost = 10, scale = FALSE)
+## 
+## 
+## Parameters:
+##    SVM-Type:  C-classification 
+##  SVM-Kernel:  linear 
+##        cost:  10 
+##       gamma:  0.05882353 
+## 
+## Number of Support Vectors:  178
+## 
+##  ( 54 124 )
+## 
+## 
+## Number of Classes:  2 
+## 
+## Levels: 
+##  No Yes</code></pre>
+<p>The summary tells us there are 178 support vectors: 54 for the class ‘No’ and 124 for the class ‘Yes’. Support vectors are vectors that lie on the margin of the hyperplane or on the wrong side of its label. The <em>margin</em> is the minimal distance of the training observations to the hyperplane, and is a quantity we want to maximize to determine the optimal separating hyperplane.</p>
+<pre class="r"><code>svm.fit$index %&gt;% head(n = 15)</code></pre>
+<pre><code>##  [1]   7  27  40  43  58  60  67  70  82 111 143 173 179 200 222</code></pre>
+<pre class="r"><code>length(svm.fit$index)</code></pre>
+<pre><code>## [1] 178</code></pre>
+<p>The ‘index’ attribute gives the indices of the observations that were used as support vectors.</p>
+<p>The cost parameter determine how tolerant an SVC is to misclassified points. It can be interpreted as an “error budget” so increasing it allows for additional points to be misclassified in exchange for more robust prediction of other points. Generally, increasing the cost increases the bias and decreases the variance by preventing overfitting.</p>
+<p>Let’s try using a smaller value of the cost parameter:</p>
+<pre class="r"><code>set.seed(1)
+tune.out &lt;- tune(svm, Private ~ ., data = College[train, ], kernel = &quot;linear&quot;,
+                 ranges = list(cost = c(.001, .01, .1, 1, 5, 10, 100, 200, 300, 400, 500 ,600, 1000)))</code></pre>
+<pre class="r"><code>summary(tune.out)</code></pre>
+<pre><code>## 
+## Parameter tuning of &#39;svm&#39;:
+## 
+## - sampling method: 10-fold cross validation 
+## 
+## - best parameters:
+##  cost
+##   100
+## 
+## - best performance: 0.03105263 
+## 
+## - Detailed performance results:
+##     cost      error dispersion
+## 1  1e-03 0.24157895 0.07490427
+## 2  1e-02 0.11815789 0.08518669
+## 3  1e-01 0.09289474 0.08412871
+## 4  1e+00 0.10342105 0.07427758
+## 5  5e+00 0.07736842 0.05089534
+## 6  1e+01 0.06710526 0.05510629
+## 7  1e+02 0.03105263 0.03648111
+## 8  2e+02 0.05657895 0.05702766
+## 9  3e+02 0.05684211 0.05752407
+## 10 4e+02 0.06184211 0.05901690
+## 11 5e+02 0.06184211 0.05901690
+## 12 6e+02 0.06184211 0.05901690
+## 13 1e+03 0.06184211 0.05901690</code></pre>
+<p>Cross validation shows that the classifier performs best when the cost is set to <code>100</code>.</p>
+<p>The <code>tune.out</code> object stores the best model:</p>
+<pre class="r"><code>svm.clf = tune.out$best.model
+
+summary(svm.clf)</code></pre>
+<pre><code>## 
+## Call:
+## best.tune(method = svm, train.x = Private ~ ., data = College[train, 
+##     ], ranges = list(cost = c(0.001, 0.01, 0.1, 1, 5, 10, 100, 
+##     200, 300, 400, 500, 600, 1000)), kernel = &quot;linear&quot;)
+## 
+## 
+## Parameters:
+##    SVM-Type:  C-classification 
+##  SVM-Kernel:  linear 
+##        cost:  100 
+##       gamma:  0.05882353 
+## 
+## Number of Support Vectors:  22
+## 
+##  ( 11 11 )
+## 
+## 
+## Number of Classes:  2 
+## 
+## Levels: 
+##  No Yes</code></pre>
+<p>The best model has a drastically larger cost parameter value.</p>
+<pre class="r"><code>yhat_svm = predict(svm.clf, College[-train, ])
+
+svm.table = table(yhat_svm, College$Private[-train])
+
+svm.table</code></pre>
+<pre><code>##         
+## yhat_svm  No Yes
+##      No  131  15
+##      Yes  33 404</code></pre>
+<pre class="r"><code>svm_error = error_rate(svm.table)</code></pre>
+<pre class="r"><code>clf_results = tibble(classifier = list(&#39;tree&#39;, &#39;svm&#39;),
+                         error = c(tree_error, svm_error)) %&gt;% arrange(error)
+
+knitr::kable(clf_results, digits = 3)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">classifier</th>
+<th align="right">error</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">svm</td>
+<td align="right">0.082</td>
+</tr>
+<tr class="even">
+<td align="left">tree</td>
+<td align="right">0.106</td>
+</tr>
+</tbody>
+</table>
+<p>The support vector machine classifier outperforms the decision tree.</p>
 </div>
 
 
