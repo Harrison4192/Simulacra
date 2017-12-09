@@ -305,3 +305,344 @@ References:
 - [R documentation: power function](https://www.rdocumentation.org/packages/stats/versions/3.4.1/topics/power)
 - [R documentation: Family Objects for Models](http://stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html)
 
+# Applications of GLMs 
+## Predicting Redshift with gamma GLM
+
+*Overview of regression models*
+
+Suppose we take a physical measurement on a sample of galaxies to obtain the following training date:
+$$\mathcal{D} = \{(x_1, y_1), \dots, (x_N, y_N)\}$$
+where the $x_i$ represent the independent variable, the galaxy, and the the $y_i$ represents the response variable, e.g. a spectroscopic measurement. We can think of each measurement $\{x_i, y_i\}$ as a realization of a distinct pair of random variables: $\{X_i, Y_i\}$, from a family of similar PDFs. We can use a generalized linear model to predict the expected value of the redshift $\{Y_i\}$ given that we know its galaxy $\{X_i = x_i\}$. If the response variable is normally distributed conditioned on $X$, we can assume theat the $Y_i$'s have the following PDF: $$f(y_i; \mu_i, \sigma_i) =  \frac{1}{\sqrt{2\pi\sigma_i^2}}\exp\left[-\frac{1}{2}\frac{(y_i-\mu_i)^2}{\sigma_i^2}\right]$$
+
+This is a special case of a GLM where the link function is identity: $$g(E(Y_i)) = \mu_i = x_i^T\beta$$
+and the inverse link is also the identity so $$g^{-1}(x_i^T\beta) = E(Y_i)$$ If we can extend the general linear model to when the response variable is not normally distributed conitioned on the explanatory vaiable. In this case, we can use a generalized linear model for any random variable from the exponential family, which have the following PDF:
+$$f(y; \theta, \phi) = exp\left\{\frac{y\theta - A(\theta)}{B(\phi)} + C(y; \phi)\right\}$$
+
+The normal and gamma distributions are example of the exponential family. When rewritten in canonical form, the gamma distribution looks like: 
+$$f(y; \mu, \phi) = \exp\left\{\frac{y/\mu - (-\ln\mu)}{-\phi} + C(y;\phi)\right\}$$
+
+In this case, you do not have to use the canonical, but can also use the log link: $\mu^T = \log(\beta^TX)$.
+To avoid the problem of *multicollinearity*, we can use *Principle Component Analysis* to reduce the dimensions into uncorrelated variables. PCA allows for a more robust way to predict redshift. 
+
+*Estimating Photometric Redshift in R*
+
+First load the CosmosPhotoz package and load the training and test data
+
+```{r}
+library(CosmoPhotoz)
+data(PHAT0train)# Data for t raining
+data(PHAT0test)# Data for estimation
+
+```
+
+Then run the computeCombPCA functions which calculates principal components from the training and test set. It returns the PCA data to be stored in the object PC_comb
+
+```{r}
+# Combine the t raining and t e s t data and
+# c a l cul a te the pr inc ipal components
+PC_comb <- computeCombPCA( subset(PHAT0train,select=c(-redshift)),
+                           subset(PHAT0test, select=c(-redshift)),
+                           robust=TRUE)
+```
+
+Create the training data by combining the response variable from the original training set with the PCA explanatory variables. The Testpc variable contains the response variable from the PCA set.
+
+```{r}
+Trainpc <- cbind(PC_comb$x, redshift=PHAT0train$redshift)
+
+Testpc <- PC_comb$y
+```
+
+Create a formula object that predicts the redshift variable using a polynomial formula of the first 6 components of PCA. 
+
+```{r}
+ # Formula based on the PCs
+ formM <- redshift~poly(Comp.1 ,2)*
+poly(Comp.2 ,2)*Comp.3*Comp.4*
+Comp.5*Comp.6
+
+```
+
+Fit a Gamma regression to the Trainpc data using the previously defined formula. 
+
+```{r}
+
+# GLM f i t t i n g
+Fit <- glmTrainPhotoZ(Trainpc, formula=formM, method="Bayesian" , family="gamma")
+
+```
+
+Now make predictions on the test data using the glmfit attribute of the Fit object containing the gamma regression. Then print the predictions: this is long; so I will include only the head.
+
+```{r}
+# Photo−z estimation
+photoZtest <- glmPredictPhotoZ(data=Testpc, train=Fit$glmfit)
+
+# Pr int Photo−z estimation
+head(photoZtest$photoz)
+```
+
+Then we can make predictions on the Testpc data and include the se.fit which gives the standard error of the predictions. 
+
+```{r}
+
+# Estimate confidence int e r v a l s er ror s
+photoz_temp <- predict(Fit$glmfit, newdata=Testpc, type="link" , se.fit = TRUE)
+
+photoz <- photoz_temp$fit
+
+```
+
+
+We can specify the lower and upper bounds of a 95% confidence intervals manually by setting a critical value of 1.96 and multiplying it to the standard error. Then we add and subtract them to the fitted values.
+
+```{r}
+critval <- 1.96 ## approx 95% Confidence Int e rva l
+upr <- photoz_temp$fit + (critval * photoz_temp$se.fit)
+lwr <- photoz_temp$fit - (critval * photoz_temp$se.fit)
+fit <- photoz_temp$fit
+
+fit2 <- Fit$glmfit$family$linkinv(fit)
+upr2 <- Fit$glmfit$family$linkinv(upr)#upper l imi t
+lwr2 <- Fit$glmfit$family$linkinv(lwr)#lower l imi t
+```
+
+The upper limit of the confidence interval for the first few predictions:
+```{r}
+head(upr2)# upper l imi t
+```
+
+The lower limit of the confidence interval for the first few predictions:
+```{r}
+head(lwr2)# lower l imi t
+
+```
+
+plotDiagPhotoZ returns diagnostic plots from the results of photometric redshifts
+```{r}
+# Create a boxplot showing the r e sul t s
+plotDiagPhotoZ(photoz = photoZtest$photoz, specz = PHAT0test$redshift, type = "box")
+```
+
+reference:
+
+J. Elliott, R.S. de Souza, A. Krone-Martins, E. Cameron, E.E.O. Ishida, J. Hilbe
+(2015). [The overlooked potential of generalized linear models in astronomy, II:
+gamma regression and photometric redshifts](https://doi.org/10.1016/j.ascom.2015.01.002). Astronomy and Computing, 10,
+61-72.
+
+## All time world ranking data
+
+Consider the data from All Time World Rankings. We use [man's 100 meter dash
+records](http://www.mastersathletics.net/fileadmin/html/Rankings/All_Time/100metresmen.htm), and [woman's 100 meter dash records](http://www.mastersathletics.net/fileadmin/html/Rankings/All_Time/100metreswomen.htm)
+
+(a)
+
+```{r}
+runnerData <- read.csv("runnerData - Sheet1.csv")
+```
+
+```{r}
+runnerData %>% head()
+```
+
+(b)
+
+
+```{r}
+fit1 = lm(Time ~ Age, data = subset(runnerData, Gender == "M"))
+
+fit2 = lm(Time ~ poly(Age, 2), data = subset(runnerData, Gender == "M"))
+```
+
+
+
+```{r}
+summary(fit1)
+
+summary(fit2)
+```
+
+Analyzing the summary of the formula calls, we can see that the quadtratic term is *highly significant*. Not only does it pass the t-test, but it increases the $R^2$ from $.9$ to $.98$: a near pearfect fit. 
+
+```{r}
+ggplot(data = runnerData, aes(x = Age, y = Time, color = Gender)) +
+  geom_point() +
+  stat_smooth(method = 'loess', se = F)
+```
+
+A quadratic fit is clearly more appropriate. 
+
+(c)
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+Create dummy variable for gender column.
+
+```{r}
+runnerData %>% transmute(Gender = ifelse(Gender == "W", 1, 0),
+                         Age = Age,
+                         Time = Time) -> runnerData1
+```
+
+Confirm dummy variable has been created successfully:
+
+```{r}
+runnerData1 %>% sample_n(size = 6)
+```
+
+Refit lm
+
+```{r}
+fit3 <- lm(Time ~ Gender + Age, data = runnerData1)
+
+summary(fit3)
+```
+
+Compare this to fitting the model without using the gender variable:
+
+```{r}
+fit4 <- lm(Time ~ Age, data = runnerData1)
+
+summary(fit4)
+```
+
+Adding the gender variable raises the $R^2$ from $.75$ to $.86$. It also passes the t-test and is highly significant. It makes sense that the gender of the runner helps predict their score; that is why men and women run in separate categories in the first place. 
+
+(d) 
+
+```{r}
+beta_30 <- fit3$coefficients[1]
+b_0_M <- fit1$coefficients[1]
+beta_32 <- fit3$coefficients[2]
+
+
+```
+
+Comparing the intercepts, we have $\hat{\beta}_{30}$ = `r beta_30` and b_0_M = `r b_0_M`. We see that  $\hat{\beta}_{30}$ is nearly half the value. The coefficient of the gender variable $\beta_{32}$ is `r beta_32`: it takes half the value of the intercept. 
+
+(e)
+
+```{r}
+fit.gamma <- glm(Time ~ Age, data = subset(runnerData, Gender == "M"), family = Gamma(link = 'inverse'))
+```
+
+I have used the inverse link, which is in fact the default link for gamma. I also tested the log link because of upward curve in the data, but it performed much worse.  
+
+```{r}
+summary(fit.gamma)
+```
+
+Now I will refit the same model from part (b), but call it from the glm function, so the metrics are the same.
+
+```{r}
+glm(Time ~ Age, data = subset(runnerData, Gender == "M"), family = gaussian(link = "identity"))
+```
+
+
+Deviance is a measure of goodness-of-fit, and lower deviance indicates a better fit. The null deviance considers the deviance of the null model (just an intercept), and the residual deviance considers the models with the full parameters. We can see that the deviance of the gamma fit is substantially lower than that of the gaussian. Furthermore, the residual deviance of the gamma is about 36 times lower than its null deviance, whereas the the gaussian residual deviance is only 6 times lower. This indicates that the gamma model explain the variation better. Last, the AIC of the gamma model is half that of the gaussian model, indicating that it is a substantially better fit. 
+
+(e)
+
+Show that the inverse Gaussian distribution is in the exponential family:
+
+pdf: $$f(x) = \left(\frac{\lambda}{2\pi x^3}\right)^{\frac{1}{2}}\exp\left\{-\frac{\lambda (x-\mu)^2}{2\mu^2 x}\right\}$$
+
+take logs and simplify:
+
+$$\log f(x) = \frac{1}{2}\log\lambda - \frac{1}{2}\log(2\pi x^3) - \frac{x\lambda}{2\mu^2} + \frac{\lambda}{\mu}
+ - \frac{\lambda}{2x}$$
+
+exponentiate:
+
+$$f(x) = \exp\left\{-\frac{\lambda}{2\mu^2}x + \frac{\lambda}{\mu}+  \frac{-\lambda + x\log(\lambda) - x\log(2\pi x^3)}{2x} \right\}$$
+
+ compare to
+ 
+ $$f(x) = \exp\left\{a(x)b(\mu) + c(\mu) + d(x)\right\}$$
+consider this as a 1-parameter family, so $\lambda$ is a nuisance parameter absorbed in the other functions. Then 
+$$a(x) = x$$ So the pdf is in canonical form and $$b(\mu) = -\frac{\lambda}{2\mu^2}$$ is the natural parameter. Further more $$c(\mu) =  \frac{\lambda}{\mu}$$ and $$d(x) =  \frac{-\lambda + x\log(\lambda) - x\log(2\pi x^3)}{2x}$$.
+ 
+ 
+```{r}
+glm(Time ~ Age, data = subset(runnerData, Gender == "M"), family = gaussian(link = "inverse"))
+```
+ 
+ This is a much better fit than using the identity link. The AIC is almost as low as that of the inverse gamma model. Equation: $$\mu = \frac{1}{.1340362 - .0008335x}$$
+ 
+ 
+ 
+## Weighted items 
+ 
+<img src="q1mid.png">
+
+Set up the model matrix:
+
+$$\begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 &1 \end{bmatrix} \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} = \begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+ 
+ Use the normal equations to solve the parameters:
+ 
+ $$ \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} =\left(\begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 &1 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+ 
+ $$  =\left(\begin{bmatrix}2 & 1 \\ 1 & 2 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+ 
+ $$  =\begin{bmatrix}\dfrac{2}{3} & -\dfrac{1}{3} \\ -\dfrac{1}{3} & \dfrac{2}{3} \end{bmatrix} \begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+  $$  = \begin{bmatrix}\dfrac{2}{3}&-\dfrac{1}{3}&\dfrac{1}{3}\\-\dfrac{1}{3}&\dfrac{2}{3}&\dfrac{1}{3}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+  
+ $$\alpha_A = \frac{2y_1 - y_2 + y_3}{3}$$
+ $$\alpha_B = \frac{2y_2 - y_1 + y_3}{3}$$
+
+<img src="q2mid.png">
+
+$$ \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} =\left(\begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix}\frac{1}{\sigma^2_{\epsilon}}&0&0\\0&\frac{1}{\sigma^2_{\epsilon}}&0\\0&0&\frac{1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 &1 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&0&1\\0&1&1\end{bmatrix}\begin{bmatrix}\frac{1}{\sigma^2_{\epsilon}}&0&0\\0&\frac{1}{\sigma^2_{\epsilon}}&0\\0&0&\frac{1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+
+
+$$ =\left(\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} & 0 & \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 & \frac{1}{\sigma^2_{\epsilon}} & \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix} \begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 &1 \end{bmatrix} \right)^{-1}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} & 0 & \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 & \frac{1}{\sigma^2_{\epsilon}} & \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+
+$$ =\left(\begin{bmatrix}  \frac{k^2+1}{k^2\sigma^2_{\epsilon}}& \frac{1}{k^2\sigma^2_{\epsilon}}\\ \frac{1}{k^2\sigma^2_{\epsilon}}& \frac{k^2+1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\right)^{-1}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} & 0 & \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 & \frac{1}{\sigma^2_{\epsilon}} & \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+
+$$ =\frac{k^2\sigma^4_{\epsilon}}{k^2+2}\begin{bmatrix}  \frac{k^2+1}{k^2\sigma^2_{\epsilon}}& -\frac{1}{k^2\sigma^2_{\epsilon}}\\ -\frac{1}{k^2\sigma^2_{\epsilon}}& \frac{k^2+1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} & 0 & \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 & \frac{1}{\sigma^2_{\epsilon}} & \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+
+$$ =\begin{bmatrix}  \sigma^2_{\epsilon}\frac{k^2+1}{k^2+2}& -\sigma^2_{\epsilon}\frac{1}{k^2+2}\\  -\sigma^2_{\epsilon}\frac{1}{k^2+2}&  \sigma^2_{\epsilon}\frac{k^2+1}{k^2+2}\end{bmatrix}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} & 0 & \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 & \frac{1}{\sigma^2_{\epsilon}} & \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+$$=\begin{bmatrix}\frac{k^2+1}{k^2+2} & -\frac{1}{k^2+2} & \frac{1}{k^2+2} \\ -\frac{1}{k^2+2} & \frac{k^2+1}{k^2+2} & \frac{1}{k^2+2}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}$$
+$$ \alpha_A = \frac{(k^2+1)y_1 - y_2 + y_3}{k^2+2}$$
+$$\alpha_B = \frac{(k^2+1)y_2 - y_1 + y_3}{k^2+2}$$
+
+<img src="q3mid.png">
+
+
+```{r}
+dframe <- data.frame(x1 = c(1, 0, 1),
+                     x2 = c(0, 1, 1),
+                     y = c(41, 53, 97))
+
+fit.a = lm(y ~ x1 + x2 -1, data = dframe)
+
+summary(fit.a)
+```
+
+
+compare to our derived formulas:
+
+$$\alpha_A = \frac{2(41) - 53 + 97}{3} = 42$$
+$$\alpha_B = \frac{2(53) - 41 + 97}{3} = 54$$
+
+the estimates match exactly. 
+```{r}
+fit.b = lm(y ~  x1 + x2 -1, data = dframe, weights = c(1, 1, .694))
+
+summary(fit.b)
+```
+
+compare to our derived formulas:
+
+$$\alpha_A = \frac{(1.2^2+1)41 - 53 + 97}{1.2^2+2} = 41.872  $$
+
+$$\alpha_A = \frac{(1.2^2+1)53 - 41 + 97}{1.2^2+2} = 53.872  $$
+
+The results match.
+
+Note that the effect of adding the weight in part (b) decreaed teh estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator. 
+

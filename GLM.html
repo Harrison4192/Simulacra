@@ -219,6 +219,7 @@ $(document).ready(function () {
 General Linear Models
 </p></h1>
 <h4 class="author"><em>Harrison Tietze</em></h4>
+<h4 class="date"><em>Fall 2017</em></h4>
 
 </div>
 
@@ -239,6 +240,11 @@ General Linear Models
 <li><a href="#implementing-quasi-likelihood-in-r"><span class="toc-section-number">3.1</span> Implementing quasi-likelihood in R</a></li>
 <li><a href="#comparing-different-models"><span class="toc-section-number">3.2</span> Comparing different models</a></li>
 <li><a href="#wedderburns-quasi-likelihood-and-nelders-extension"><span class="toc-section-number">3.3</span> Wedderburn’s Quasi likelihood and Nelder’s extension</a></li>
+</ul></li>
+<li><a href="#applications-of-glms"><span class="toc-section-number">4</span> Applications of GLMs</a><ul>
+<li><a href="#predicting-redshift-with-gamma-glm"><span class="toc-section-number">4.1</span> Predicting Redshift with gamma GLM</a></li>
+<li><a href="#all-time-world-ranking-data"><span class="toc-section-number">4.2</span> All time world ranking data</a></li>
+<li><a href="#weighted-items"><span class="toc-section-number">4.3</span> Weighted items</a></li>
 </ul></li>
 </ul>
 </div>
@@ -804,6 +810,361 @@ knitr::kable(model_fits)</code></pre>
 <li><a href="https://www.rdocumentation.org/packages/stats/versions/3.4.1/topics/power">R documentation: power function</a></li>
 <li><a href="http://stat.ethz.ch/R-manual/R-devel/library/stats/html/family.html">R documentation: Family Objects for Models</a></li>
 </ul>
+</div>
+</div>
+<div id="applications-of-glms" class="section level1">
+<h1><span class="header-section-number">4</span> Applications of GLMs</h1>
+<div id="predicting-redshift-with-gamma-glm" class="section level2">
+<h2><span class="header-section-number">4.1</span> Predicting Redshift with gamma GLM</h2>
+<p><em>Overview of regression models</em></p>
+<p>Suppose we take a physical measurement on a sample of galaxies to obtain the following training date: <span class="math display">\[\mathcal{D} = \{(x_1, y_1), \dots, (x_N, y_N)\}\]</span> where the <span class="math inline">\(x_i\)</span> represent the independent variable, the galaxy, and the the <span class="math inline">\(y_i\)</span> represents the response variable, e.g. a spectroscopic measurement. We can think of each measurement <span class="math inline">\(\{x_i, y_i\}\)</span> as a realization of a distinct pair of random variables: <span class="math inline">\(\{X_i, Y_i\}\)</span>, from a family of similar PDFs. We can use a generalized linear model to predict the expected value of the redshift <span class="math inline">\(\{Y_i\}\)</span> given that we know its galaxy <span class="math inline">\(\{X_i = x_i\}\)</span>. If the response variable is normally distributed conditioned on <span class="math inline">\(X\)</span>, we can assume theat the <span class="math inline">\(Y_i\)</span>’s have the following PDF: <span class="math display">\[f(y_i; \mu_i, \sigma_i) =  \frac{1}{\sqrt{2\pi\sigma_i^2}}\exp\left[-\frac{1}{2}\frac{(y_i-\mu_i)^2}{\sigma_i^2}\right]\]</span></p>
+<p>This is a special case of a GLM where the link function is identity: <span class="math display">\[g(E(Y_i)) = \mu_i = x_i^T\beta\]</span> and the inverse link is also the identity so <span class="math display">\[g^{-1}(x_i^T\beta) = E(Y_i)\]</span> If we can extend the general linear model to when the response variable is not normally distributed conitioned on the explanatory vaiable. In this case, we can use a generalized linear model for any random variable from the exponential family, which have the following PDF: <span class="math display">\[f(y; \theta, \phi) = exp\left\{\frac{y\theta - A(\theta)}{B(\phi)} + C(y; \phi)\right\}\]</span></p>
+<p>The normal and gamma distributions are example of the exponential family. When rewritten in canonical form, the gamma distribution looks like: <span class="math display">\[f(y; \mu, \phi) = \exp\left\{\frac{y/\mu - (-\ln\mu)}{-\phi} + C(y;\phi)\right\}\]</span></p>
+<p>In this case, you do not have to use the canonical, but can also use the log link: <span class="math inline">\(\mu^T = \log(\beta^TX)\)</span>. To avoid the problem of <em>multicollinearity</em>, we can use <em>Principle Component Analysis</em> to reduce the dimensions into uncorrelated variables. PCA allows for a more robust way to predict redshift.</p>
+<p><em>Estimating Photometric Redshift in R</em></p>
+<p>First load the CosmosPhotoz package and load the training and test data</p>
+<pre class="r"><code>library(CosmoPhotoz)
+data(PHAT0train)# Data for t raining
+data(PHAT0test)# Data for estimation</code></pre>
+<p>Then run the computeCombPCA functions which calculates principal components from the training and test set. It returns the PCA data to be stored in the object PC_comb</p>
+<pre class="r"><code># Combine the t raining and t e s t data and
+# c a l cul a te the pr inc ipal components
+PC_comb &lt;- computeCombPCA( subset(PHAT0train,select=c(-redshift)),
+                           subset(PHAT0test, select=c(-redshift)),
+                           robust=TRUE)</code></pre>
+<p>Create the training data by combining the response variable from the original training set with the PCA explanatory variables. The Testpc variable contains the response variable from the PCA set.</p>
+<pre class="r"><code>Trainpc &lt;- cbind(PC_comb$x, redshift=PHAT0train$redshift)
+
+Testpc &lt;- PC_comb$y</code></pre>
+<p>Create a formula object that predicts the redshift variable using a polynomial formula of the first 6 components of PCA.</p>
+<pre class="r"><code> # Formula based on the PCs
+ formM &lt;- redshift~poly(Comp.1 ,2)*
+poly(Comp.2 ,2)*Comp.3*Comp.4*
+Comp.5*Comp.6</code></pre>
+<p>Fit a Gamma regression to the Trainpc data using the previously defined formula.</p>
+<pre class="r"><code># GLM f i t t i n g
+Fit &lt;- glmTrainPhotoZ(Trainpc, formula=formM, method=&quot;Bayesian&quot; , family=&quot;gamma&quot;)</code></pre>
+<p>Now make predictions on the test data using the glmfit attribute of the Fit object containing the gamma regression. Then print the predictions: this is long; so I will include only the head.</p>
+<pre class="r"><code># Photo−z estimation
+photoZtest &lt;- glmPredictPhotoZ(data=Testpc, train=Fit$glmfit)
+
+# Pr int Photo−z estimation
+head(photoZtest$photoz)</code></pre>
+<pre><code>##            1            3            4            5            6 
+## 5.526921e+04 2.935661e-02 9.399746e-01 2.839470e-02 5.345369e-01 
+##            7 
+## 1.637762e-02</code></pre>
+<p>Then we can make predictions on the Testpc data and include the se.fit which gives the standard error of the predictions.</p>
+<pre class="r"><code># Estimate confidence int e r v a l s er ror s
+photoz_temp &lt;- predict(Fit$glmfit, newdata=Testpc, type=&quot;link&quot; , se.fit = TRUE)
+
+photoz &lt;- photoz_temp$fit</code></pre>
+<p>We can specify the lower and upper bounds of a 95% confidence intervals manually by setting a critical value of 1.96 and multiplying it to the standard error. Then we add and subtract them to the fitted values.</p>
+<pre class="r"><code>critval &lt;- 1.96 ## approx 95% Confidence Int e rva l
+upr &lt;- photoz_temp$fit + (critval * photoz_temp$se.fit)
+lwr &lt;- photoz_temp$fit - (critval * photoz_temp$se.fit)
+fit &lt;- photoz_temp$fit
+
+fit2 &lt;- Fit$glmfit$family$linkinv(fit)
+upr2 &lt;- Fit$glmfit$family$linkinv(upr)#upper l imi t
+lwr2 &lt;- Fit$glmfit$family$linkinv(lwr)#lower l imi t</code></pre>
+<p>The upper limit of the confidence interval for the first few predictions:</p>
+<pre class="r"><code>head(upr2)# upper l imi t</code></pre>
+<pre><code>##            1            3            4            5            6 
+## 1.154015e+09 4.362539e-02 1.522563e+01 4.440402e-02 4.993972e+00 
+##            7 
+## 2.509132e-02</code></pre>
+<p>The lower limit of the confidence interval for the first few predictions:</p>
+<pre class="r"><code>head(lwr2)# lower l imi t</code></pre>
+<pre><code>##          1          3          4          5          6          7 
+## 2.64700721 0.01975479 0.05803058 0.01815735 0.05721493 0.01069001</code></pre>
+<p>plotDiagPhotoZ returns diagnostic plots from the results of photometric redshifts</p>
+<pre class="r"><code># Create a boxplot showing the r e sul t s
+plotDiagPhotoZ(photoz = photoZtest$photoz, specz = PHAT0test$redshift, type = &quot;box&quot;)</code></pre>
+<pre><code>## Warning: Removed 9 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="GLM_files/figure-html/unnamed-chunk-24-1.png" width="672" /></p>
+<p>reference:</p>
+<p>J. Elliott, R.S. de Souza, A. Krone-Martins, E. Cameron, E.E.O. Ishida, J. Hilbe (2015). <a href="https://doi.org/10.1016/j.ascom.2015.01.002">The overlooked potential of generalized linear models in astronomy, II: gamma regression and photometric redshifts</a>. Astronomy and Computing, 10, 61-72.</p>
+</div>
+<div id="all-time-world-ranking-data" class="section level2">
+<h2><span class="header-section-number">4.2</span> All time world ranking data</h2>
+<p>Consider the data from All Time World Rankings. We use <a href="http://www.mastersathletics.net/fileadmin/html/Rankings/All_Time/100metresmen.htm">man’s 100 meter dash records</a>, and <a href="http://www.mastersathletics.net/fileadmin/html/Rankings/All_Time/100metreswomen.htm">woman’s 100 meter dash records</a></p>
+<ol style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<pre class="r"><code>runnerData &lt;- read.csv(&quot;runnerData - Sheet1.csv&quot;)</code></pre>
+<pre class="r"><code>runnerData %&gt;% head()</code></pre>
+<pre><code>##   Gender Age  Time
+## 1      M  35  9.97
+## 2      M  40 10.29
+## 3      M  45 10.72
+## 4      M  50 10.88
+## 5      M  55 11.39
+## 6      M  60 11.70</code></pre>
+<ol start="2" style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<pre class="r"><code>fit1 = lm(Time ~ Age, data = subset(runnerData, Gender == &quot;M&quot;))
+
+fit2 = lm(Time ~ poly(Age, 2), data = subset(runnerData, Gender == &quot;M&quot;))</code></pre>
+<pre class="r"><code>summary(fit1)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = Time ~ Age, data = subset(runnerData, Gender == 
+##     &quot;M&quot;))
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -0.9355 -0.6100 -0.2255  0.5460  1.4746 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  4.78776    0.84503   5.666 0.000208 ***
+## Age          0.12520    0.01303   9.606 2.29e-06 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.7792 on 10 degrees of freedom
+## Multiple R-squared:  0.9022, Adjusted R-squared:  0.8925 
+## F-statistic: 92.28 on 1 and 10 DF,  p-value: 2.294e-06</code></pre>
+<pre class="r"><code>summary(fit2)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = Time ~ poly(Age, 2), data = subset(runnerData, Gender == 
+##     &quot;M&quot;))
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.47423 -0.23887  0.05148  0.20903  0.33025 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)   12.61250    0.08985 140.372 2.40e-16 ***
+## poly(Age, 2)1  7.48562    0.31125  24.050 1.78e-09 ***
+## poly(Age, 2)2  2.28040    0.31125   7.327 4.44e-05 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3113 on 9 degrees of freedom
+## Multiple R-squared:  0.986,  Adjusted R-squared:  0.9828 
+## F-statistic:   316 on 2 and 9 DF,  p-value: 4.602e-09</code></pre>
+<p>Analyzing the summary of the formula calls, we can see that the quadtratic term is <em>highly significant</em>. Not only does it pass the t-test, but it increases the <span class="math inline">\(R^2\)</span> from <span class="math inline">\(.9\)</span> to <span class="math inline">\(.98\)</span>: a near pearfect fit.</p>
+<pre class="r"><code>ggplot(data = runnerData, aes(x = Age, y = Time, color = Gender)) +
+  geom_point() +
+  stat_smooth(method = &#39;loess&#39;, se = F)</code></pre>
+<p><img src="GLM_files/figure-html/unnamed-chunk-29-1.png" width="672" /></p>
+<p>A quadratic fit is clearly more appropriate.</p>
+<ol start="3" style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<p>Create dummy variable for gender column.</p>
+<pre class="r"><code>runnerData %&gt;% transmute(Gender = ifelse(Gender == &quot;W&quot;, 1, 0),
+                         Age = Age,
+                         Time = Time) -&gt; runnerData1</code></pre>
+<p>Confirm dummy variable has been created successfully:</p>
+<pre class="r"><code>runnerData1 %&gt;% sample_n(size = 6)</code></pre>
+<pre><code>##    Gender Age  Time
+## 11      0  85 16.13
+## 3       0  45 10.72
+## 1       0  35  9.97
+## 23      1  85 19.83
+## 9       0  75 13.49
+## 17      1  55 13.30</code></pre>
+<p>Refit lm</p>
+<pre class="r"><code>fit3 &lt;- lm(Time ~ Gender + Age, data = runnerData1)
+
+summary(fit3)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = Time ~ Gender + Age, data = runnerData1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -1.3850 -1.0230 -0.1954  0.4399  3.9327 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  2.41779    1.02474   2.359 0.028064 *  
+## Gender       2.14917    0.52721   4.076 0.000541 ***
+## Age          0.16312    0.01527  10.680 6.04e-10 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.291 on 21 degrees of freedom
+## Multiple R-squared:  0.8616, Adjusted R-squared:  0.8484 
+## F-statistic: 65.34 on 2 and 21 DF,  p-value: 9.623e-10</code></pre>
+<p>Compare this to fitting the model without using the gender variable:</p>
+<pre class="r"><code>fit4 &lt;- lm(Time ~ Age, data = runnerData1)
+
+summary(fit4)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = Time ~ Age, data = runnerData1)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -2.2360 -1.1121  0.0135  0.7855  5.0072 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  3.49237    1.29489   2.697   0.0132 *  
+## Age          0.16312    0.01997   8.168 4.18e-08 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.689 on 22 degrees of freedom
+## Multiple R-squared:  0.752,  Adjusted R-squared:  0.7407 
+## F-statistic: 66.71 on 1 and 22 DF,  p-value: 4.176e-08</code></pre>
+<p>Adding the gender variable raises the <span class="math inline">\(R^2\)</span> from <span class="math inline">\(.75\)</span> to <span class="math inline">\(.86\)</span>. It also passes the t-test and is highly significant. It makes sense that the gender of the runner helps predict their score; that is why men and women run in separate categories in the first place.</p>
+<ol start="4" style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<pre class="r"><code>beta_30 &lt;- fit3$coefficients[1]
+b_0_M &lt;- fit1$coefficients[1]
+beta_32 &lt;- fit3$coefficients[2]</code></pre>
+<p>Comparing the intercepts, we have <span class="math inline">\(\hat{\beta}_{30}\)</span> = 2.4177885 and b_0_M = 4.7877622. We see that <span class="math inline">\(\hat{\beta}_{30}\)</span> is nearly half the value. The coefficient of the gender variable <span class="math inline">\(\beta_{32}\)</span> is 2.1491667: it takes half the value of the intercept.</p>
+<ol start="5" style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<pre class="r"><code>fit.gamma &lt;- glm(Time ~ Age, data = subset(runnerData, Gender == &quot;M&quot;), family = Gamma(link = &#39;inverse&#39;))</code></pre>
+<p>I have used the inverse link, which is in fact the default link for gamma. I also tested the log link because of upward curve in the data, but it performed much worse.</p>
+<pre class="r"><code>summary(fit.gamma)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = Time ~ Age, family = Gamma(link = &quot;inverse&quot;), data = subset(runnerData, 
+##     Gender == &quot;M&quot;))
+## 
+## Deviance Residuals: 
+##       Min         1Q     Median         3Q        Max  
+## -0.045707  -0.024232  -0.003373   0.024836   0.048323  
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  1.311e-01  3.009e-03   43.58 9.73e-13 ***
+## Age         -7.921e-04  4.273e-05  -18.54 4.50e-09 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for Gamma family taken to be 0.001018569)
+## 
+##     Null deviance: 0.363554  on 11  degrees of freedom
+## Residual deviance: 0.010172  on 10  degrees of freedom
+## AIC: 15.649
+## 
+## Number of Fisher Scoring iterations: 3</code></pre>
+<p>Now I will refit the same model from part (b), but call it from the glm function, so the metrics are the same.</p>
+<pre class="r"><code>glm(Time ~ Age, data = subset(runnerData, Gender == &quot;M&quot;), family = gaussian(link = &quot;identity&quot;))</code></pre>
+<pre><code>## 
+## Call:  glm(formula = Time ~ Age, family = gaussian(link = &quot;identity&quot;), 
+##     data = subset(runnerData, Gender == &quot;M&quot;))
+## 
+## Coefficients:
+## (Intercept)          Age  
+##      4.7878       0.1252  
+## 
+## Degrees of Freedom: 11 Total (i.e. Null);  10 Residual
+## Null Deviance:       62.11 
+## Residual Deviance: 6.072     AIC: 31.88</code></pre>
+<p>Deviance is a measure of goodness-of-fit, and lower deviance indicates a better fit. The null deviance considers the deviance of the null model (just an intercept), and the residual deviance considers the models with the full parameters. We can see that the deviance of the gamma fit is substantially lower than that of the gaussian. Furthermore, the residual deviance of the gamma is about 36 times lower than its null deviance, whereas the the gaussian residual deviance is only 6 times lower. This indicates that the gamma model explain the variation better. Last, the AIC of the gamma model is half that of the gaussian model, indicating that it is a substantially better fit.</p>
+<ol start="5" style="list-style-type: lower-alpha">
+<li></li>
+</ol>
+<p>Show that the inverse Gaussian distribution is in the exponential family:</p>
+<p>pdf: <span class="math display">\[f(x) = \left(\frac{\lambda}{2\pi x^3}\right)^{\frac{1}{2}}\exp\left\{-\frac{\lambda (x-\mu)^2}{2\mu^2 x}\right\}\]</span></p>
+<p>take logs and simplify:</p>
+<p><span class="math display">\[\log f(x) = \frac{1}{2}\log\lambda - \frac{1}{2}\log(2\pi x^3) - \frac{x\lambda}{2\mu^2} + \frac{\lambda}{\mu}
+ - \frac{\lambda}{2x}\]</span></p>
+<p>exponentiate:</p>
+<p><span class="math display">\[f(x) = \exp\left\{-\frac{\lambda}{2\mu^2}x + \frac{\lambda}{\mu}+  \frac{-\lambda + x\log(\lambda) - x\log(2\pi x^3)}{2x} \right\}\]</span></p>
+<p>compare to</p>
+<p><span class="math display">\[f(x) = \exp\left\{a(x)b(\mu) + c(\mu) + d(x)\right\}\]</span> consider this as a 1-parameter family, so <span class="math inline">\(\lambda\)</span> is a nuisance parameter absorbed in the other functions. Then <span class="math display">\[a(x) = x\]</span> So the pdf is in canonical form and <span class="math display">\[b(\mu) = -\frac{\lambda}{2\mu^2}\]</span> is the natural parameter. Further more <span class="math display">\[c(\mu) =  \frac{\lambda}{\mu}\]</span> and <span class="math display">\[d(x) =  \frac{-\lambda + x\log(\lambda) - x\log(2\pi x^3)}{2x}\]</span>.</p>
+<pre class="r"><code>glm(Time ~ Age, data = subset(runnerData, Gender == &quot;M&quot;), family = gaussian(link = &quot;inverse&quot;))</code></pre>
+<pre><code>## 
+## Call:  glm(formula = Time ~ Age, family = gaussian(link = &quot;inverse&quot;), 
+##     data = subset(runnerData, Gender == &quot;M&quot;))
+## 
+## Coefficients:
+## (Intercept)          Age  
+##   0.1340362   -0.0008335  
+## 
+## Degrees of Freedom: 11 Total (i.e. Null);  10 Residual
+## Null Deviance:       62.11 
+## Residual Deviance: 1.792     AIC: 17.24</code></pre>
+<p>This is a much better fit than using the identity link. The AIC is almost as low as that of the inverse gamma model. Equation: <span class="math display">\[\mu = \frac{1}{.1340362 - .0008335x}\]</span></p>
+</div>
+<div id="weighted-items" class="section level2">
+<h2><span class="header-section-number">4.3</span> Weighted items</h2>
+<p><img src="q1mid.png"></p>
+<p>Set up the model matrix:</p>
+<p><span class="math display">\[\begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ 1 &amp;1 \end{bmatrix} \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} = \begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p>Use the normal equations to solve the parameters:</p>
+<p><span class="math display">\[ \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} =\left(\begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ 1 &amp;1 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[  =\left(\begin{bmatrix}2 &amp; 1 \\ 1 &amp; 2 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[  =\begin{bmatrix}\dfrac{2}{3} &amp; -\dfrac{1}{3} \\ -\dfrac{1}{3} &amp; \dfrac{2}{3} \end{bmatrix} \begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span> <span class="math display">\[  = \begin{bmatrix}\dfrac{2}{3}&amp;-\dfrac{1}{3}&amp;\dfrac{1}{3}\\-\dfrac{1}{3}&amp;\dfrac{2}{3}&amp;\dfrac{1}{3}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[\alpha_A = \frac{2y_1 - y_2 + y_3}{3}\]</span> <span class="math display">\[\alpha_B = \frac{2y_2 - y_1 + y_3}{3}\]</span></p>
+<p><img src="q2mid.png"></p>
+<p><span class="math display">\[ \begin{bmatrix} \alpha_A \\ \alpha_B \end{bmatrix} =\left(\begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix}\frac{1}{\sigma^2_{\epsilon}}&amp;0&amp;0\\0&amp;\frac{1}{\sigma^2_{\epsilon}}&amp;0\\0&amp;0&amp;\frac{1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ 1 &amp;1 \end{bmatrix} \right)^{-1}\begin{bmatrix}1&amp;0&amp;1\\0&amp;1&amp;1\end{bmatrix}\begin{bmatrix}\frac{1}{\sigma^2_{\epsilon}}&amp;0&amp;0\\0&amp;\frac{1}{\sigma^2_{\epsilon}}&amp;0\\0&amp;0&amp;\frac{1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[ =\left(\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} &amp; 0 &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 &amp; \frac{1}{\sigma^2_{\epsilon}} &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix} \begin{bmatrix} 1 &amp; 0 \\ 0 &amp; 1 \\ 1 &amp;1 \end{bmatrix} \right)^{-1}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} &amp; 0 &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 &amp; \frac{1}{\sigma^2_{\epsilon}} &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[ =\left(\begin{bmatrix}  \frac{k^2+1}{k^2\sigma^2_{\epsilon}}&amp; \frac{1}{k^2\sigma^2_{\epsilon}}\\ \frac{1}{k^2\sigma^2_{\epsilon}}&amp; \frac{k^2+1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\right)^{-1}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} &amp; 0 &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 &amp; \frac{1}{\sigma^2_{\epsilon}} &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[ =\frac{k^2\sigma^4_{\epsilon}}{k^2+2}\begin{bmatrix}  \frac{k^2+1}{k^2\sigma^2_{\epsilon}}&amp; -\frac{1}{k^2\sigma^2_{\epsilon}}\\ -\frac{1}{k^2\sigma^2_{\epsilon}}&amp; \frac{k^2+1}{k^2\sigma^2_{\epsilon}}\end{bmatrix}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} &amp; 0 &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 &amp; \frac{1}{\sigma^2_{\epsilon}} &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span></p>
+<p><span class="math display">\[ =\begin{bmatrix}  \sigma^2_{\epsilon}\frac{k^2+1}{k^2+2}&amp; -\sigma^2_{\epsilon}\frac{1}{k^2+2}\\  -\sigma^2_{\epsilon}\frac{1}{k^2+2}&amp;  \sigma^2_{\epsilon}\frac{k^2+1}{k^2+2}\end{bmatrix}\begin{bmatrix} \frac{1}{\sigma^2_{\epsilon}} &amp; 0 &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \\ 0 &amp; \frac{1}{\sigma^2_{\epsilon}} &amp; \frac{1}{k^2\sigma^2_{\epsilon}} \end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span> <span class="math display">\[=\begin{bmatrix}\frac{k^2+1}{k^2+2} &amp; -\frac{1}{k^2+2} &amp; \frac{1}{k^2+2} \\ -\frac{1}{k^2+2} &amp; \frac{k^2+1}{k^2+2} &amp; \frac{1}{k^2+2}\end{bmatrix}\begin{bmatrix} y_1 \\ y_2 \\ y_3 \end{bmatrix}\]</span> <span class="math display">\[ \alpha_A = \frac{(k^2+1)y_1 - y_2 + y_3}{k^2+2}\]</span> <span class="math display">\[\alpha_B = \frac{(k^2+1)y_2 - y_1 + y_3}{k^2+2}\]</span></p>
+<p><img src="q3mid.png"></p>
+<pre class="r"><code>dframe &lt;- data.frame(x1 = c(1, 0, 1),
+                     x2 = c(0, 1, 1),
+                     y = c(41, 53, 97))
+
+fit.a = lm(y ~ x1 + x2 -1, data = dframe)
+
+summary(fit.a)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = y ~ x1 + x2 - 1, data = dframe)
+## 
+## Residuals:
+##  1  2  3 
+## -1 -1  1 
+## 
+## Coefficients:
+##    Estimate Std. Error t value Pr(&gt;|t|)  
+## x1   42.000      1.414   29.70   0.0214 *
+## x2   54.000      1.414   38.18   0.0167 *
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.732 on 1 degrees of freedom
+## Multiple R-squared:  0.9998, Adjusted R-squared:  0.9994 
+## F-statistic:  2316 on 2 and 1 DF,  p-value: 0.01469</code></pre>
+<p>compare to our derived formulas:</p>
+<p><span class="math display">\[\alpha_A = \frac{2(41) - 53 + 97}{3} = 42\]</span> <span class="math display">\[\alpha_B = \frac{2(53) - 41 + 97}{3} = 54\]</span></p>
+<p>the estimates match exactly.</p>
+<pre class="r"><code>fit.b = lm(y ~  x1 + x2 -1, data = dframe, weights = c(1, 1, .694))
+
+summary(fit.b)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = y ~ x1 + x2 - 1, data = dframe, weights = c(1, 1, 
+##     0.694))
+## 
+## Weighted Residuals:
+##       1       2       3 
+## -0.8719 -0.8719  1.0466 
+## 
+## Coefficients:
+##    Estimate Std. Error t value Pr(&gt;|t|)  
+## x1   41.872      1.362   30.74   0.0207 *
+## x2   53.872      1.362   39.55   0.0161 *
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 1.617 on 1 degrees of freedom
+## Multiple R-squared:  0.9998, Adjusted R-squared:  0.9993 
+## F-statistic:  2106 on 2 and 1 DF,  p-value: 0.01541</code></pre>
+<p>compare to our derived formulas:</p>
+<p><span class="math display">\[\alpha_A = \frac{(1.2^2+1)41 - 53 + 97}{1.2^2+2} = 41.872  \]</span></p>
+<p><span class="math display">\[\alpha_A = \frac{(1.2^2+1)53 - 41 + 97}{1.2^2+2} = 53.872  \]</span></p>
+<p>The results match.</p>
+<p>Note that the effect of adding the weight in part (b) decreaed teh estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator.</p>
 </div>
 </div>
 
