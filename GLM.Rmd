@@ -644,5 +644,5 @@ $$\alpha_A = \frac{(1.2^2+1)53 - 41 + 97}{1.2^2+2} = 53.872  $$
 
 The results match.
 
-Note that the effect of adding the weight in part (b) decreaed teh estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator. 
+Note that the effect of adding the weight in part (b) decreaed the estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator. 
 

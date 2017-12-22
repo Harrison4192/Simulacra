@@ -1,0 +1,42 @@
+---
+title: "notes"
+author: "Harrison Tietze"
+date: "10/31/2017"
+output: html_document
+---
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+A residual is the difference between the observed and predicted value. The formula for a residual is $$\epsilon_i = y_i - x_i^T\beta$$ Since a residual is a quantity calculated from the data, it is considered a statistic and has a standard error. The *standard error* is the variability of a sample statistic over many samples and can be estimated by the bootstrap, or by calculating the standard deviation of the statistic. 
+We can estimate the standard error of the residual with the formula for standard deviation, calculated by $$SE(\epsilon_i) = \sqrt{\frac{\sum_{i=1}^N(\epsilon_i-\overline{\epsilon})^2}{N}}$$. To better interperet the scale of our residuals, it helps to view standardized residuals: $$S_{\epsilon_i} = \frac{\epsilon_i - \overline{\epsilon}}{SE({\epsilon_i})}$$.
+
+In regression, an outlier is a record whose actual y value is distant from the
+predicted value. You can detect outliers by examining the standardized residual,
+which is the residual divided by the standard error of the residuals. Standardized residuals can be interpreted as “the number of standard
+errors away from the regression line.” 
+
+##Assumptions of regression
+
+Residuals must possess constant variance. We don't want the residuals to be correlate with our fitted values, i.e the average residual at $\hat{y} = 1,000$ should equal the average residual at $\hat{y} = 10,000$. 
+
+
+
+
+
+```{r}
+
+lm.mod <- lm(medv ~ ., data = Boston)
+
+summary(lm.mod)
+
+augment(lm.mod, Boston)
+```
+
