@@ -20,8 +20,8 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
-<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -30,10 +30,12 @@
   }
 </style>
 <script type="text/javascript">
-if (window.hljs && document.readyState && document.readyState === "complete") {
-   window.setTimeout(function() {
-      hljs.initHighlighting();
-   }, 0);
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
 }
 </script>
 
@@ -199,9 +201,6 @@ $(document).ready(function () {
 <li>
   <a href="KDE.html">KDE</a>
 </li>
-<li>
-  <a href="https://docs.google.com/document/d/e/2PACX-1vTnpiuuxd0-ia3SMAk1SGusAyLyvwPN-wsl_dQCIC6Nglj0WgyTne0nYS1JISZZI6H-ym631b9B0kr0/pub">Novella</a>
-</li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         
@@ -225,6 +224,7 @@ $(document).ready(function () {
 <embed src="Certificates/certificate.pdf" width="300" height="250" type='application/pdf'>
 <embed src="Certificates/writingfunctionsR.pdf" width="300" height="250" type='application/pdf'>
 <embed src="Certificates/machineLearningToolbox.pdf" width="300" height="250" type='application/pdf'>
+<embed src="Certificates/XGBoost.pdf" width="300" height="250" type='application/pdf'>
 <p><img src="Certificates/udacity.png" width="300" height="200"></p>
 <p><img src="Certificates/VCwithGit.png" width="300" height="250"> <img src="Certificates/linuxCLI.png" width="300" height="250"> <img src="Certificates/githubcol.png" width="300" height="250"></p>
 
