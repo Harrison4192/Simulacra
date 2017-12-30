@@ -17,6 +17,8 @@ output:
 
 <embed src="Certificates/XGBoost.pdf" width="300" height="250" type='application/pdf'>
 
+<embed src="Certificates/supervisedlearn.pdf" width="300" height="250" type='application/pdf'>
+
 <img src="Certificates/udacity.png" width="300" height="200">
 
 <img src="Certificates/VCwithGit.png" width="300" height="250">
