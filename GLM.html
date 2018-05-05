@@ -21,8 +21,8 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
-<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -31,10 +31,12 @@
   }
 </style>
 <script type="text/javascript">
-if (window.hljs && document.readyState && document.readyState === "complete") {
-   window.setTimeout(function() {
-      hljs.initHighlighting();
-   }, 0);
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
 }
 </script>
 
@@ -184,6 +186,9 @@ $(document).ready(function () {
 </li>
 <li>
   <a href="simulations.html">Sims</a>
+</li>
+<li>
+  <a href="zodiac.html">CLV</a>
 </li>
 <li>
   <a href="ML.html">ML</a>
@@ -1164,7 +1169,7 @@ summary(fit.b)</code></pre>
 <p><span class="math display">\[\alpha_A = \frac{(1.2^2+1)41 - 53 + 97}{1.2^2+2} = 41.872  \]</span></p>
 <p><span class="math display">\[\alpha_A = \frac{(1.2^2+1)53 - 41 + 97}{1.2^2+2} = 53.872  \]</span></p>
 <p>The results match.</p>
-<p>Note that the effect of adding the weight in part (b) decreaed teh estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator.</p>
+<p>Note that the effect of adding the weight in part (b) decreaed the estimates on both parameters by a small amount. From the equations we can see that it is because the weight added to the denominator is greater than the contribution to the numerator.</p>
 </div>
 </div>
 

@@ -9,6 +9,8 @@ navbar:
       href: about.html
     - text: "Sims"
       href: simulations.html
+    - text: "CLV"
+      href: zodiac.html
     - text: "ML"
       href: ML.html
     - text: "GLM"
@@ -19,3 +21,5 @@ navbar:
       href: topology.html
     - text: "KDE"
       href: KDE.html
+    - text: "Novella"
+      href: https://docs.google.com/document/d/e/2PACX-1vTnpiuuxd0-ia3SMAk1SGusAyLyvwPN-wsl_dQCIC6Nglj0WgyTne0nYS1JISZZI6H-ym631b9B0kr0/pub

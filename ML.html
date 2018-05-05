@@ -21,8 +21,8 @@
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
 <script src="site_libs/navigation-1.1/tabsets.js"></script>
-<link href="site_libs/highlightjs-1.1/default.css" rel="stylesheet" />
-<script src="site_libs/highlightjs-1.1/highlight.js"></script>
+<link href="site_libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -31,10 +31,12 @@
   }
 </style>
 <script type="text/javascript">
-if (window.hljs && document.readyState && document.readyState === "complete") {
-   window.setTimeout(function() {
-      hljs.initHighlighting();
-   }, 0);
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
 }
 </script>
 
@@ -185,6 +187,9 @@ $(document).ready(function () {
 </li>
 <li>
   <a href="simulations.html">Sims</a>
+</li>
+<li>
+  <a href="zodiac.html">CLV</a>
 </li>
 <li>
   <a href="ML.html">ML</a>
@@ -799,15 +804,15 @@ show_metrics(sum.FWD)</code></pre>
 <pre class="r"><code>BEST_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                              expr      min       lq
-##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.004913 3.500291
-##     mean   median       uq      max neval
-##  5.13265 4.310343 6.365104 15.36862   100</code></pre>
+##  regsubsets(Apps ~ ., data = data_df, nvmax = 17) 3.297352 3.640682
+##      mean   median       uq      max neval
+##  4.174848 3.793609 3.981699 10.00558   100</code></pre>
 <pre class="r"><code>FWD_time</code></pre>
 <pre><code>## Unit: milliseconds
 ##                                                                  expr
 ##  regsubsets(Apps ~ ., data = data_df, nvmax = 17, method = &quot;forward&quot;)
 ##       min       lq     mean   median       uq      max neval
-##  2.683556 3.071442 4.420644 3.354546 3.782163 78.56575   100</code></pre>
+##  2.980297 3.354433 4.710344 3.648824 4.159254 31.93668   100</code></pre>
 <p>We can see that forward selection is on average a few miliseconds faster than the full model selection.</p>
 <p>Let’s compare the models they selected as determined by the BIC. Since the BIC was minimized by the model with 10 variables, we can see if they are the same variables for the Best subset and Forward selection.</p>
 <pre class="r"><code>sum.FWD$which[10, ] == bmod.summary$which[10, ]</code></pre>
